@@ -1,0 +1,153 @@
+
+:root {
+	--font-family: system-ui;
+
+	--font-weight-headline-bold: 900;
+	--font-weight-headline: 700;
+	--font-weight-body: 600;
+
+	--font-size-level-headline-1: 36px;
+	--font-size-level-headline-2: 28px;
+	--font-size-level-headline-3: 21px;
+	--font-size-level-body: 16px;
+	--font-size-level-small-1: 10px;
+	--font-size-level-small-2: 12px;
+
+	--easing: cubic-bezier(0.4, 0, 0.2, 1);
+
+	--color-bg: white;
+	--color-1: black;
+	--color-2: grey;
+	--color-3: lightgrey;
+	--color-highlight: blue; 
+
+	--border-radius-large: 10px;
+	--border-radius-normal: 5px;
+
+	--spacing-x-large: 50px;
+	--spacing-large: 20px;
+	--spacing-normal: 10px;
+	--spacing-small: 5px;
+
+	-ms-text-size-adjust: 100%;
+	-webkit-text-size-adjust: 100%;
+	-moz-osx-font-smoothing: grayscale;
+	-webkit-font-smoothing: antialiased;
+}
+
+*,
+*:before,
+*:after {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	font-size: var(--font-size-normal);
+	font-family: var(--font-family);
+	font-weight: var(--font-weight-body);
+	line-height: 1.2;
+}
+
+h1,
+.headline-1 {
+	font-size: var(--font-size-level-headline-1);
+	font-weight: var(--font-weight-headline-bold);
+	margin: 0;
+	line-height: 1;
+}
+
+h2,
+.headline-2 {
+	font-size: var(--font-size-level-headline-2);
+	font-weight: var(--font-weight-headline);
+	margin: 0;
+	line-height: 1;
+}
+
+h3,
+.headline-3 {
+	font-size: var(--font-size-level-headline-3);
+	font-weight: var(--font-weight-headline);
+	margin: 0;
+	line-height: 1;
+}
+
+p a {
+	text-decoration: none;
+	color: var(--color-highlight);
+
+	&:hover,
+	&:focus-visible {
+		opacity: 0.75;
+	}
+}
+
+img {
+	max-width: 100%;
+}
+
+.btn-reset {
+	outline: none;
+	border: none;
+
+	padding: 0;
+	margin: 0;
+
+	text-transform: inherit;
+
+	cursor: pointer;
+
+	background-color: transparent;
+}
+
+.color-bg {
+	color: var(--color-bg);
+}
+.color-1 {
+	color: var(--color-1);
+}
+.color-2 {
+	color: var(--color-2);
+}
+.color-3 {
+	color: var(--color-3);
+}
+
+.bg-color-bg {
+	background-color: var(--color-bg);
+}
+.bg-color-1 {
+	background-color: var(--color-1);
+}
+.bg-color-2 {
+	background-color: var(--color-2);
+}
+.bg-color-3 {
+	background-color: var(--color-3);
+}
+
+
+.size-headline-1 {
+	font-size: var(--font-size-level-headline-1);
+}
+
+.size-headline-2 {
+	font-size: var(--font-size-level-headline-2);
+}
+
+.size-headline-3 {
+	font-size: var(--font-size-level-headline-3);
+}
+
+.size-body {
+	font-size: var(--font-size-level-body);
+}
+
+.size-small-1 {
+	font-size: var(--font-size-level-small-1);
+}
+
+.size-small-2 {
+	font-size: var(--font-size-level-small-2);
+}
