@@ -79,7 +79,7 @@ async function previousAuth(filePath) {
 			...data
 		};
 	} catch (e) {
-		console.error(e);
+		// console.error(e);
 		return false;
 	}
 }
@@ -99,19 +99,69 @@ class FixedResponseDeserializer {
 	}
 }
 
-async function persistSdk(filePath, accessTokenData) {
+async function persistSdk(filePath, accessTokenData, onMessage) {
 	await fs.writeFile(filePath, JSON.stringify(accessTokenData), 'utf-8');
 	return SpotifyApi.withAccessToken(process.env.SPOTIFY_CLIENT_ID, accessTokenData, {
-		deserializer: FixedResponseDeserializer
+		deserializer: FixedResponseDeserializer,
+		responseValidator: {
+			async validateResponse(response) {
+				switch (response.status) {
+					case 401:
+						onMessage({
+							message: `Bad token - Re-auth`,
+							type: 'error'
+						});
+						throw new Error(
+							'Bad or expired token. This can happen if the user revoked a token or the access token has expired. You should re-authenticate the user.'
+						);
+					case 403: {
+						onMessage({
+							message: `Bad token - wrong credentials`,
+							type: 'error'
+						});
+						const body = await response.text();
+						throw new Error(
+							`Bad OAuth request (wrong consumer key, bad nonce, expired timestamp...). Unfortunately, re-authenticating the user won't help here. Body: ${body}`
+						);
+					}
+					case 429:
+						onMessage({
+							message: `Rate Limit - ${Math.round((parseInt(response.headers.get('Retry-After')) / 60) * 10) / 10}s`,
+							type: 'error'
+						});
+						throw new Error('The app has exceeded its rate limits.');
+					default:
+						if (!response.status.toString().startsWith('20')) {
+							onMessage({
+								message: `Spotify Api Error`,
+								type: 'error'
+							});
+							const body = await response.text();
+							throw new Error(
+								`Unrecognised response code: ${response.status} - ${response.statusText}. Body: ${body}`
+							);
+						}
+				}
+			}
+		},
+		errorHandler: {
+			handleErrors(error) {
+				onMessage({
+					message: error.message,
+					type: 'error'
+				});
+			}
+		}
 	});
 }
 
 /**
  *
  * @param {{current: null | SpotifyApi}} sdk
+ * @param {({message: string, type: "info" | "error" | "track"}) => void} onMessage
  * @param {Partial<Types.SpotifyOptions>} opts
  */
-const run = async (sdk, opts = {}) => {
+const run = async (sdk, onMessage, opts = {}) => {
 	const options = {
 		...DEFAULT_OPTS,
 		...opts
@@ -120,7 +170,7 @@ const run = async (sdk, opts = {}) => {
 	const refreshedAuth = await previousAuth(options.tokenJson);
 
 	if (refreshedAuth) {
-		sdk.current = await persistSdk(options.tokenJson, refreshedAuth);
+		sdk.current = await persistSdk(options.tokenJson, refreshedAuth, onMessage);
 	}
 
 	const app = express();
@@ -166,7 +216,7 @@ const run = async (sdk, opts = {}) => {
 		}
 
 		const data = await SpotifyAuth.token.get(code, redirect_uri);
-		sdk.current = await persistSdk(options.tokenJson, data);
+		sdk.current = await persistSdk(options.tokenJson, data, onMessage);
 
 		res.redirect(`${options.authenticatedRedirect}?authenticated=true`);
 	});

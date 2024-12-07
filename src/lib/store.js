@@ -4,6 +4,7 @@ export const liveData = writable(false);
 export const authenticated = writable(false);
 export const siteUrl = writable('');
 export const sitePort = writable('');
+export const settled = writable(false);
 
 const objectHasValues = (obj) => Object.values(obj).length > 0;
 

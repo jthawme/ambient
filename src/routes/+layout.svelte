@@ -1,7 +1,7 @@
 <script>
 	import 'normalize.css';
 	import '$lib/styles.scss';
-	import { api, authenticated, liveData, sitePort, siteUrl } from '$lib/store';
+	import { api, authenticated, liveData, settled, sitePort, siteUrl } from '$lib/store';
 	import { socket } from '$lib/comms';
 
 	import AuthenticateTrigger from '$lib/components/AuthenticateTrigger.svelte';
@@ -22,17 +22,17 @@
 	}
 
 	$effect(() => {
-		$socket.on('message', (item) => {
+		console.log($socket);
+		$socket?.on('message', (item) => {
 			toastItems.addItem(item);
 		});
-
-		return () => $socket.disconnect();
 	});
 
 	$effect(() => {
 		siteUrl.set(data.url);
 		liveData.set(data.live);
 		sitePort.set(data.port);
+		settled.set(true);
 
 		determineAppState();
 

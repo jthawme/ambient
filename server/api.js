@@ -192,6 +192,8 @@ const getContext = async (sdk, uri) => {
 			case 'album': {
 				const album = await sdk.albums.get(id);
 
+				console.log(id, album);
+
 				return {
 					...trim.album(album),
 					type: 'album'
@@ -221,12 +223,7 @@ function apiWrapper(handler) {
 			await handler(req, res);
 		} catch (e) {
 			console.error('API Error', e);
-
-			if (e.message.includes('The app has exceeded its rate limits')) {
-				req.comms.error('Rate limit exceeded');
-			} else {
-				req.comms.error('Check Logs');
-			}
+			// req.comms.error('Check Logs');
 			next(e);
 		}
 	};

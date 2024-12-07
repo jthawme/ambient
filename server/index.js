@@ -72,7 +72,7 @@ const sdkProtect = (req, res, next) => {
 	next();
 };
 
-const spotify = await SpotifyRoutes(sdk);
+const spotify = await SpotifyRoutes(sdk, (item) => io.emit('message', item));
 app.use('/spotify', spotify);
 app.use('/api', sdkProtect, ApiRoutes());
 
