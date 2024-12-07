@@ -17,7 +17,6 @@
 	}
 
 	function onFullLoad() {
-		console.log('on full load');
 		loadState = LOAD_STATE.FULL;
 	}
 

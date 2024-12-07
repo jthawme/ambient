@@ -1,16 +1,45 @@
 import { derived, writable } from 'svelte/store';
 
 export const liveData = writable(false);
-export const endpoint = derived([liveData], ([$liveData]) => {
-	return $liveData ? '' : 'http://localhost:3000';
-});
 export const authenticated = writable(false);
 export const siteUrl = writable('');
 export const sitePort = writable('');
 
 const objectHasValues = (obj) => Object.values(obj).length > 0;
 
-export const api = derived([endpoint], ([$endpoint]) => {
+export const address = derived(
+	[liveData, siteUrl, sitePort],
+	([$liveData, $siteUrl, $sitePort]) => {
+		const full = `${typeof window !== 'undefined' ? window.location.protocol : 'http:'}//${$siteUrl}:${$sitePort}`;
+
+		return {
+			full,
+			naked: [$siteUrl, $sitePort].join(';'),
+
+			/**
+			 *
+			 * @param {string} route
+			 * @returns {string}
+			 */
+			get(route) {
+				return `${full}${route}`;
+			},
+
+			endpoint: $liveData || !$siteUrl ? '' : `http://${$siteUrl}:3000`,
+
+			/**
+			 *
+			 * @param {string} route
+			 * @returns {string}
+			 */
+			server(route) {
+				return `${this.endpoint}${route}`;
+			}
+		};
+	}
+);
+
+export const api = derived([address], ([$address]) => {
 	/**
 	 *
 	 * @param {string} route
@@ -20,9 +49,12 @@ export const api = derived([endpoint], ([$endpoint]) => {
 	const f = async (route, data = {}, opts = {}) => {
 		try {
 			const url = new URL(
-				[$endpoint.startsWith('http') ? '' : window.location.origin, $endpoint, '/api', route].join(
-					''
-				)
+				[
+					$address.endpoint.startsWith('http') ? '' : window.location.origin,
+					$address.endpoint,
+					'/api',
+					route
+				].join('')
 			);
 
 			if (opts.method === 'POST' && objectHasValues(data)) {
@@ -52,36 +84,51 @@ export const api = derived([endpoint], ([$endpoint]) => {
 		},
 		info() {
 			return f('/info');
+		},
+		/**
+		 *
+		 * @param {string} q
+		 */
+		search(q) {
+			return f('/search', { q });
+		},
+		/**
+		 *
+		 * @param {string} id
+		 */
+		artist(id) {
+			return f(`/artist/${id}`);
+		},
+		/**
+		 *
+		 * @param {string} id
+		 */
+		album(id) {
+			return f(`/album/${id}`);
+		},
+
+		/**
+		 *
+		 * @param {string} uri
+		 */
+		addTrack(uri) {
+			return f(`/add`, { uri });
+		},
+
+		play() {
+			return f('/play');
+		},
+
+		pause() {
+			return f('/pause');
+		},
+
+		skipForward() {
+			return f('/skipForward');
+		},
+
+		skipBackward() {
+			return f('/skipBackward');
 		}
 	};
 });
-
-export const address = derived(
-	[endpoint, siteUrl, sitePort],
-	([$endpoint, $siteUrl, $sitePort]) => {
-		const full = `${typeof window !== 'undefined' ? window.location.protocol : 'http:'}//${$siteUrl}:${$sitePort}`;
-
-		return {
-			full,
-			naked: [$siteUrl, $sitePort].join(';'),
-
-			/**
-			 *
-			 * @param {string} route
-			 * @returns {string}
-			 */
-			get(route) {
-				return `${full}${route}`;
-			},
-
-			/**
-			 *
-			 * @param {string} route
-			 * @returns {string}
-			 */
-			endpoint(route) {
-				return `${$endpoint}${route}`;
-			}
-		};
-	}
-);

@@ -1,13 +1,19 @@
 import { SpotifyApi } from '@spotify/web-api-ts-sdk';
 import express from 'express';
 
-const DEFAULT_OPTS = {};
+const DEFAULT_OPTS = {
+	market: 'GB',
+	searchQueryLimit: 10
+};
 
 /**
  * @typedef {object} ApiOptions
+ * @property {import('@spotify/web-api-ts-sdk').Market} market
+ * @property {number} searchQueryLimit
  */
 
-const normalisedData = (name, subtitle, uri, images) => ({
+const normalisedData = (id, name, subtitle, uri, images) => ({
+	id,
 	title: name,
 	subtitle,
 	uri: uri,
@@ -24,7 +30,14 @@ const trim = {
 	 */
 	track(track) {
 		return {
-			normalised: normalisedData(track.name, track.artists[0].name, track.uri, track.album.images),
+			id: track.id,
+			normalised: normalisedData(
+				track.id,
+				track.name,
+				track.artists[0].name,
+				track.uri,
+				track?.album?.images ?? []
+			),
 			title: track.name,
 			album: track.album.name,
 			artist: track.artists[0].name,
@@ -43,7 +56,9 @@ const trim = {
 	 */
 	playlist(playlist) {
 		return {
+			id: playlist.id,
 			normalised: normalisedData(
+				playlist.id,
 				playlist.name,
 				playlist.owner.display_name,
 				playlist.uri,
@@ -66,7 +81,8 @@ const trim = {
 	 */
 	artist(artist) {
 		return {
-			normalised: normalisedData(artist.name, '', artist.uri, artist.images),
+			id: artist.id,
+			normalised: normalisedData(artist.id, artist.name, '', artist.uri, artist.images),
 			title: artist.name,
 			uri: artist.uri,
 			image: {
@@ -81,7 +97,14 @@ const trim = {
 	 */
 	album(album) {
 		return {
-			normalised: normalisedData(album.name, album.release_date, album.uri, album.images),
+			normalised: normalisedData(
+				album.id,
+				album.name,
+				album.release_date.split('-').shift(),
+				album.uri,
+				album.images
+			),
+			id: album.id,
 			title: album.name,
 			release: album.release_date,
 			uri: album.uri,
@@ -98,7 +121,14 @@ const trim = {
 	 */
 	episode(episode) {
 		return {
-			normalised: normalisedData(episode.name, episode.show.name, episode.uri, episode.images),
+			id: episode.id,
+			normalised: normalisedData(
+				episode.id,
+				episode.name,
+				episode.show.name,
+				episode.uri,
+				episode.images
+			),
 			title: episode.name,
 			show: episode.show.name,
 			release: episode.release_date,
@@ -115,7 +145,8 @@ const trim = {
 	 */
 	show(show) {
 		return {
-			normalised: normalisedData(show.name, '', show.uri, show.images),
+			id: show.id,
+			normalised: normalisedData(show.id, show.name, '', show.uri, show.images),
 			title: show.name,
 			uri: show.uri,
 			image: {
@@ -126,13 +157,22 @@ const trim = {
 	}
 };
 
+const deconstructUri = (uri) => {
+	const [_, type, id] = uri.split(':');
+
+	return {
+		type,
+		id
+	};
+};
+
 /**
  *
  * @param {SpotifyApi} sdk
  * @param {string} uri
  */
 const getContext = async (sdk, uri) => {
-	const [_, type, id] = uri.split(':');
+	const { type, id } = deconstructUri(uri);
 
 	try {
 		switch (type) {
@@ -160,6 +200,14 @@ const getContext = async (sdk, uri) => {
 					type: 'album'
 				};
 			}
+			case 'show': {
+				const show = await sdk.shows.get(id);
+
+				return {
+					...trim.show(show),
+					type: 'show'
+				};
+			}
 			default: {
 				return {};
 			}
@@ -174,7 +222,8 @@ function apiWrapper(handler) {
 		try {
 			await handler(req, res);
 		} catch (e) {
-			console.error(e);
+			console.error('API Error', e);
+			req.comms.error('Check Logs');
 			next(e);
 		}
 	};
@@ -193,14 +242,81 @@ const run = (sdk, opts = {}) => {
 	const app = express();
 
 	app.get(
-		'/search',
+		'/artist/:id',
 		apiWrapper(async (req, res) => {
-			const results = await req.sdk.search(req.query.q, ['track']);
+			/** @type {SpotifyApi} */
+			const sdk = req.sdk;
+			const results = await sdk.artists.topTracks(req.params.id);
 
 			return res.json({
-				results: {
-					tracks: results.tracks.items.map(trim.track)
-				}
+				tracks: results.tracks.map(trim.track)
+			});
+		})
+	);
+
+	app.get(
+		'/album/:id',
+		apiWrapper(async (req, res) => {
+			/** @type {SpotifyApi} */
+			const sdk = req.sdk;
+
+			const album = await sdk.albums.get(req.params.id);
+
+			return res.json({
+				tracks: album.tracks.items
+					.map((item) => ({
+						...item,
+						album: album
+					}))
+					.map(trim.track)
+			});
+		})
+	);
+
+	app.get(
+		'/search',
+		apiWrapper(async (req, res) => {
+			/** @type {SpotifyApi} */
+			const sdk = req.sdk;
+			const results = await sdk.search(
+				req.query.q,
+				['track', 'artist', 'album'],
+				options.market,
+				options.searchQueryLimit
+			);
+
+			return res.json({
+				albums: results.albums.items.map(trim.album),
+				artists: results.artists.items.map(trim.artist),
+				tracks: results.tracks.items.map(trim.track)
+			});
+		})
+	);
+
+	app.get(
+		'/add',
+		apiWrapper(async (req, res) => {
+			/** @type {SpotifyApi} */
+			const sdk = req.sdk;
+
+			const { queue } = await sdk.player.getUsersQueue();
+
+			if (queue.some((item) => item.uri === req.query.uri)) {
+				req.comms.error('Song already in queue');
+				return res.json({
+					success: false
+				});
+			}
+
+			const track = await sdk.tracks.get(deconstructUri(req.query.uri).id);
+
+			const result = await sdk.player.addItemToPlaybackQueue(req.query.uri);
+
+			req.comms.message(`Added <em>${track.name}</em>`, 'track');
+
+			return res.json({
+				result,
+				track
 			});
 		})
 	);
@@ -210,7 +326,7 @@ const run = (sdk, opts = {}) => {
 		apiWrapper(async (req, res) => {
 			/** @type {SpotifyApi} */
 			const sdk = req.sdk;
-			const track = await sdk.player.getCurrentlyPlayingTrack();
+			const track = await sdk.player.getCurrentlyPlayingTrack(options.market, 'episode');
 
 			if (!track) {
 				return res.json({
@@ -222,7 +338,10 @@ const run = (sdk, opts = {}) => {
 
 			return res.json({
 				isPlaying: track?.is_playing,
-				track: trim.track(track.item),
+				track:
+					track.currently_playing_type === 'episode'
+						? trim.episode(track.item)
+						: trim.track(track.item),
 				context,
 				player: {
 					current: track.progress_ms,
@@ -260,6 +379,66 @@ const run = (sdk, opts = {}) => {
 						}
 					}),
 				full: queue
+			});
+		})
+	);
+
+	app.get(
+		'/skipForward',
+		apiWrapper(async (req, res) => {
+			/** @type {SpotifyApi} */
+			const sdk = req.sdk;
+			await sdk.player.skipToNext();
+
+			req.comms.message('Skipped forward');
+
+			return res.json({
+				success: true
+			});
+		})
+	);
+
+	app.get(
+		'/skipBackward',
+		apiWrapper(async (req, res) => {
+			/** @type {SpotifyApi} */
+			const sdk = req.sdk;
+			await sdk.player.skipToPrevious();
+
+			req.comms.message('Skipped back');
+
+			return res.json({
+				success: true
+			});
+		})
+	);
+
+	app.get(
+		'/play',
+		apiWrapper(async (req, res) => {
+			/** @type {SpotifyApi} */
+			const sdk = req.sdk;
+			await sdk.player.startResumePlayback();
+
+			req.comms.message('Pressed play');
+
+			return res.json({
+				success: true
+			});
+		})
+	);
+
+	app.get(
+		'/pause',
+		apiWrapper(async (req, res) => {
+			/** @type {SpotifyApi} */
+			const sdk = req.sdk;
+			await sdk.player.pausePlayback();
+
+			req.comms.message('Pressed pause');
+
+			return res.json({
+				success: true
 			});
 		})
 	);

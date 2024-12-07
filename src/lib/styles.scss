@@ -99,6 +99,8 @@ img {
 	cursor: pointer;
 
 	background-color: transparent;
+	font-weight: inherit;
+	color: inherit;
 }
 
 .color-bg {
@@ -150,4 +152,10 @@ img {
 
 .size-small-2 {
 	font-size: var(--font-size-level-small-2);
+}
+
+.ellipsis {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }

@@ -1,22 +1,11 @@
 <script>
-	import Vibrant from 'node-vibrant';
 	import { qr } from '$lib/actions/qr.svelte';
 	import { address, api } from '$lib/store';
 	import { fade } from 'svelte/transition';
 	import ImageLoad from '$lib/components/ImageLoad.svelte';
-
-	/** @type {{ data: import('./$types').PageData }} */
-	let { data } = $props();
+	import PlayingTracker from '$lib/components/PlayingTracker.svelte';
 
 	let playing = $state(null);
-
-	/** @type {{'--color-1'?: string,'--color-2'?: string,'--color-3'?: string,'--color-bg'?: string}} */
-	let palette = $state({});
-	let paletteString = $derived(
-		Object.entries(palette)
-			.map((item) => item.join(':'))
-			.join(';')
-	);
 
 	let subtitle = $derived.by(() => {
 		if (!playing) {
@@ -34,59 +23,14 @@
 				return playing?.context?.normalised.subtitle ?? '';
 		}
 	});
-
-	async function getPalette(image) {
-		const img = new Image();
-		img.crossOrigin = 'Anonymous';
-		img.src = image; // + '?not-from-cache-please';
-
-		const palette = await Vibrant.from(img).getPalette();
-
-		return {
-			'--color-1': palette.LightVibrant.hex,
-			'--color-2': palette.DarkVibrant.hex,
-			'--color-3': palette.Muted.hex,
-			'--color-bg': palette.DarkMuted.hex
-		};
-	}
-
-	async function getPlaying() {
-		const data = await $api.info();
-
-		if (data?.track?.uri !== playing?.track?.uri) {
-			// is different
-
-			if (data?.track?.normalised) {
-				palette = await getPalette(data.track.normalised.image.low.url);
-			}
-		}
-
-		playing = data;
-	}
-
-	function automateLoop() {
-		const run = async () => {
-			await getPlaying();
-			int.current = setTimeout(run, 5000);
-		};
-		const int = { current: 0 };
-
-		run();
-
-		return () => {
-			clearTimeout(int.current);
-		};
-	}
-
-	$effect(() => {
-		return automateLoop();
-	});
 </script>
+
+<PlayingTracker bind:playing />
 
 {#if !playing}
 	Loading
 {:else}
-	<div class="page bg-color-bg" style={paletteString}>
+	<div class="page bg-color-bg">
 		<div class="top">
 			<div class="context color-1">
 				<span>{playing?.context.normalised.title}</span>
@@ -95,19 +39,21 @@
 		</div>
 
 		<div class="middle">
-			{#key playing.track.normalised.image.full.url}
-				<span transition:fade>
-					<ImageLoad
-						full={playing.track.normalised.image.full.url}
-						low={playing.track.normalised.image.low.url}
-					/>
-				</span>
-			{/key}
+			<div class="middle-image">
+				{#key playing.track.normalised.image.full.url}
+					<span transition:fade>
+						<ImageLoad
+							full={playing.track.normalised.image.full.url}
+							low={playing.track.normalised.image.low.url}
+						/>
+					</span>
+				{/key}
+			</div>
 		</div>
 
 		<div class="bottom">
 			<div class="left color-1">
-				<h1 class="title">{playing.track.normalised.title}</h1>
+				<h1 class="title ellipsis">{playing.track.normalised.title}</h1>
 				<span class="headline-3">{playing.track.normalised.subtitle}</span>
 			</div>
 
@@ -150,32 +96,40 @@
 	}
 
 	.middle {
+		min-height: 0;
+
 		display: grid;
 
 		grid-template-columns: 1fr;
-		grid-template-rows: 1fr;
 
-		min-height: 0;
-		padding: var(--spacing-x-large);
+		&-image {
+			display: grid;
 
-		@media (orientation: landscape) {
-			padding: var(--spacing-large);
-		}
-
-		span {
-			grid-column: 1;
-			grid-row: 1;
+			grid-template-columns: 1fr;
+			grid-template-rows: 1fr;
 
 			min-height: 0;
-		}
+			padding: var(--spacing-x-large);
 
-		:global(img) {
-			width: 100%;
-			height: 100%;
-			min-height: 0;
-			min-width: 0;
+			@media (orientation: landscape) {
+				padding: var(--spacing-large);
+			}
 
-			object-fit: contain;
+			span {
+				grid-column: 1;
+				grid-row: 1;
+
+				min-height: 0;
+			}
+
+			:global(img) {
+				width: 100%;
+				height: 100%;
+				min-height: 0;
+				min-width: 0;
+
+				object-fit: contain;
+			}
 		}
 	}
 
@@ -229,10 +183,9 @@
 			min-width: 0;
 
 			.title {
-				white-space: nowrap;
-				overflow: hidden;
-				text-overflow: ellipsis;
 				width: 100%;
+				line-height: 1.2;
+				margin-bottom: -0.1em;
 			}
 		}
 

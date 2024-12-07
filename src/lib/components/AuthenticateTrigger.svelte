@@ -8,12 +8,12 @@
 		<div class="options-left">
 			<h1>This instance is not authenticated</h1>
 			<p>
-				<a href={$address.endpoint('/spotify/start')}>Authenticate</a> or scan qr to authenticate via
-				device
+				{$address.server('/spotify/start')}
+				<a href={$address.server('/spotify/start')}>Authenticate</a> or scan qr to authenticate via device
 			</p>
 		</div>
 		<div class="options-right">
-			<span class="qr" use:qr={{ url: $address.endpoint('/spotify/start') }}></span>
+			<span class="qr" use:qr={{ url: $address.server('/spotify/start') }}></span>
 		</div>
 	</div>
 </div>
@@ -25,8 +25,8 @@
 		top: 50%;
 		left: 50%;
 
+		width: calc(100% - (var(--spacing-large) * 2));
 		max-width: 500px;
-		margin: var(--spacing-large);
 		padding: var(--spacing-large);
 
 		transform: translate3d(-50%, -50%, 0);
@@ -50,5 +50,6 @@
 		display: grid;
 
 		grid-template-columns: 1fr 100px;
+		gap: var(--spacing-normal);
 	}
 </style>

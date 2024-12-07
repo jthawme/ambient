@@ -2,9 +2,13 @@
 	import 'normalize.css';
 	import '$lib/styles.scss';
 	import { api, authenticated, liveData, sitePort, siteUrl } from '$lib/store';
+	import { socket } from '$lib/comms';
 
 	import AuthenticateTrigger from '$lib/components/AuthenticateTrigger.svelte';
 	import { address } from '$lib/store';
+	import ToastManager from '$lib/components/Toast/Manager.svelte';
+	import { toastItems } from '$lib/toast';
+	import LoadingIndicator from '$lib/components/LoadingIndicator.svelte';
 
 	/** @type {{ data: import('./$types').LayoutData, children: import('svelte').Snippet }} */
 	let { data, children } = $props();
@@ -17,9 +21,13 @@
 		authenticated.set(serverAuthenticated);
 	}
 
+	$socket.on('message', (item) => {
+		toastItems.addItem(item);
+	});
+
 	$effect(() => {
-		liveData.set(data.live);
 		siteUrl.set(data.url);
+		liveData.set(data.live);
 		sitePort.set(data.port);
 
 		determineAppState();
@@ -50,9 +58,10 @@
 </svelte:head>
 
 {#if loading}
-	loading...
+	<LoadingIndicator floating />
 {:else if !$authenticated}
 	<AuthenticateTrigger />
 {:else}
+	<ToastManager />
 	{@render children()}
 {/if}

@@ -6,6 +6,8 @@ import ip from 'ip';
 import cors from 'cors';
 import { spawn } from 'node:child_process';
 import os from 'node:os';
+import { createServer } from 'node:http';
+import { Server } from 'socket.io';
 
 import ApiRoutes from './api.js';
 import SpotifyRoutes from './spotify.js';
@@ -15,6 +17,13 @@ dotenv.config();
 
 const PORT = process.env.PORT ?? 3000;
 const app = express();
+const server = createServer(app);
+const io = new Server(server, {
+	cors: {
+		origin: '*'
+	}
+});
+
 app.use(express.json());
 app.use(cors());
 
@@ -23,10 +32,32 @@ const sdk = {
 	current: null
 };
 
+const comms = (_io) => {
+	const methods = {
+		message(message, type = 'info') {
+			return _io.emit('message', {
+				type,
+				message
+			});
+		},
+		error(message) {
+			return methods.message(`Error: ${message}`, 'error');
+		}
+	};
+
+	return methods;
+};
+
 app.use((req, res, next) => {
 	req.sdk = sdk.current;
+	req.io = io;
+	req.comms = comms(io);
 	next();
 });
+
+// io.on('connection', (socket) => {
+// 	console.log('a user connected');
+// });
 
 const sdkProtect = (req, res, next) => {
 	if (!req.sdk) {
@@ -69,7 +100,7 @@ function ExecuteChromium() {
 	]);
 }
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
 	console.log(`Server listening on port http://${ip.address()}:${PORT}`);
 
 	if (os.platform() === 'linux') {

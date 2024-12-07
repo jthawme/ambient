@@ -4,7 +4,11 @@ import fetch from 'node-fetch';
 import fs from 'node:fs/promises';
 import { ERROR } from './constants.js';
 
-const SCOPE = ['user-read-currently-playing', 'user-read-playback-state'];
+const SCOPE = [
+	'user-read-currently-playing',
+	'user-read-playback-state',
+	'user-modify-playback-state'
+];
 
 const DEFAULT_OPTS = {
 	port: 3000,
@@ -84,9 +88,26 @@ async function previousAuth(filePath) {
 	}
 }
 
+class FixedResponseDeserializer {
+	static async deserialize(response) {
+		const text = await response.text();
+
+		const contentType = response.headers.get('content-type') ?? '';
+
+		if (text.length > 0 && contentType.includes('application/json')) {
+			const json = JSON.parse(text);
+			return json;
+		}
+
+		return null;
+	}
+}
+
 async function persistSdk(filePath, accessTokenData) {
 	await fs.writeFile(filePath, JSON.stringify(accessTokenData), 'utf-8');
-	return SpotifyApi.withAccessToken(process.env.SPOTIFY_CLIENT_ID, accessTokenData);
+	return SpotifyApi.withAccessToken(process.env.SPOTIFY_CLIENT_ID, accessTokenData, {
+		deserializer: FixedResponseDeserializer
+	});
 }
 
 /**
