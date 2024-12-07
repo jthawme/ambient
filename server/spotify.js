@@ -2,7 +2,9 @@ import { SpotifyApi } from '@spotify/web-api-ts-sdk';
 import express from 'express';
 import fetch from 'node-fetch';
 import fs from 'node:fs/promises';
+
 import { ERROR } from './constants.js';
+import * as Types from './types.js';
 
 const SCOPE = [
 	'user-read-currently-playing',
@@ -15,19 +17,13 @@ const DEFAULT_OPTS = {
 	origin: 'http://localhost',
 	routePrefix: '/spotify',
 	authenticatedRedirect: '/player',
-	tokenJson: './server/spotify_auth.json'
+	tokenJson: './server/spotify_auth.json',
+	scope: ['user-read-currently-playing', 'user-read-playback-state', 'user-modify-playback-state']
 };
-
-/**
- * @typedef {object} SpotifyOptions
- * @property {number} port
- * @property {string} origin
- * @property {string} routePrefix
- */
 
 const SpotifyAuth = {
 	token: {
-		refresh(refresh_token, access_token) {
+		refresh(refresh_token) {
 			return fetch('https://accounts.spotify.com/api/token', {
 				method: 'POST',
 				headers: {
@@ -113,7 +109,7 @@ async function persistSdk(filePath, accessTokenData) {
 /**
  *
  * @param {{current: null | SpotifyApi}} sdk
- * @param {SpotifyOptions} opts
+ * @param {Partial<Types.SpotifyOptions>} opts
  */
 const run = async (sdk, opts = {}) => {
 	const options = {
@@ -134,7 +130,7 @@ const run = async (sdk, opts = {}) => {
 		'/token'
 	].join('');
 
-	const scope = SCOPE.join(' ');
+	const scope = [...SCOPE, options.scope].join(' ');
 
 	app.get('/start', function (req, res) {
 		if (req.sdk) {

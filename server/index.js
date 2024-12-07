@@ -13,6 +13,8 @@ import ApiRoutes from './api.js';
 import SpotifyRoutes from './spotify.js';
 import { ERROR } from './constants.js';
 
+// const USER_OPTIONS = await import("../display.config.js").then(module => module.default).catch(() => {});
+
 dotenv.config();
 
 const PORT = process.env.PORT ?? 3000;

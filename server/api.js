@@ -1,16 +1,11 @@
 import { SpotifyApi } from '@spotify/web-api-ts-sdk';
 import express from 'express';
+import * as Types from './types.js';
 
 const DEFAULT_OPTS = {
 	market: 'GB',
 	searchQueryLimit: 10
 };
-
-/**
- * @typedef {object} ApiOptions
- * @property {import('@spotify/web-api-ts-sdk').Market} market
- * @property {number} searchQueryLimit
- */
 
 const normalisedData = (id, name, subtitle, uri, images) => ({
 	id,
@@ -231,7 +226,7 @@ function apiWrapper(handler) {
 
 /**
  *
- * @param {ApiOptions} opts
+ * @param {Types.ApiOptions} opts
  */
 const run = (sdk, opts = {}) => {
 	const options = {
