@@ -1,7 +1,9 @@
 import { SpotifyApi } from '@spotify/web-api-ts-sdk';
-import express from 'express';
+import { Router } from 'express';
+
 import * as Types from './types.js';
-import { memoCache, memoKey } from './memo.js';
+import { memo } from './memo.js';
+import { events } from './events.js';
 
 /** @type {Types.ApiOptions} */
 const DEFAULT_OPTS = {
@@ -9,6 +11,15 @@ const DEFAULT_OPTS = {
 	searchQueryLimit: 10
 };
 
+/**
+ *
+ * @param {string} id
+ * @param {string} name
+ * @param {string} subtitle
+ * @param {string} uri
+ * @param {{url: string, width: number, height: number}[]} images
+ * @returns {Types.ApiNormalisedItem}
+ */
 const normalisedData = (id, name, subtitle, uri, images) => ({
 	id,
 	title: name,
@@ -24,6 +35,7 @@ const trim = {
 	/**
 	 *
 	 * @param {import('@spotify/web-api-ts-sdk').Track} track
+	 * @returns {Types.ApiTrackItem}
 	 */
 	track(track) {
 		return {
@@ -50,6 +62,7 @@ const trim = {
 	/**
 	 *
 	 * @param {import('@spotify/web-api-ts-sdk').Playlist} playlist
+	 * @returns {Types.ApiPlaylistItem}
 	 */
 	playlist(playlist) {
 		return {
@@ -64,7 +77,6 @@ const trim = {
 			title: playlist.name,
 			owner: playlist.owner.display_name,
 			total: playlist.tracks.total,
-			tracks: playlist.tracks.items,
 			uri: playlist.uri,
 			image: {
 				full: playlist.images.at(0),
@@ -75,6 +87,7 @@ const trim = {
 	/**
 	 *
 	 * @param {import('@spotify/web-api-ts-sdk').Artist} artist
+	 * @returns {Types.ApiArtistItem}
 	 */
 	artist(artist) {
 		return {
@@ -91,6 +104,7 @@ const trim = {
 	/**
 	 *
 	 * @param {import('@spotify/web-api-ts-sdk').Album} album
+	 * @returns {Types.ApiAlbumItem}
 	 */
 	album(album) {
 		return {
@@ -115,6 +129,7 @@ const trim = {
 	/**
 	 *
 	 * @param {import('@spotify/web-api-ts-sdk').Episode} episode
+	 * @returns {Types.ApiEpisodeItem}
 	 */
 	episode(episode) {
 		return {
@@ -139,6 +154,7 @@ const trim = {
 	/**
 	 *
 	 * @param {import('@spotify/web-api-ts-sdk').Show} show
+	 * @returns {Types.ApiShowItem}
 	 */
 	show(show) {
 		return {
@@ -154,6 +170,10 @@ const trim = {
 	}
 };
 
+/**
+ *
+ * @param {string} uri Spotify URI
+ */
 const deconstructUri = (uri) => {
 	const [_, type, id] = uri.split(':');
 
@@ -192,8 +212,6 @@ const getContext = async (sdk, uri) => {
 			case 'album': {
 				const album = await sdk.albums.get(id);
 
-				console.log(id, album);
-
 				return {
 					...trim.album(album),
 					type: 'album'
@@ -212,13 +230,21 @@ const getContext = async (sdk, uri) => {
 			}
 		}
 	} catch (e) {
-		console.log(e);
 		return {};
 	}
 };
 
+/**
+ *
+ * @param {(req: import('express').Request & {sdk: SpotifyApi}, res: import('express').Response, next: import('express').NextFunction)} handler
+ * @returns
+ */
 function apiWrapper(handler) {
-	return async (req, res, next) => {
+	return async (
+		/** @type {import('express').Request & {sdk: SpotifyApi}} */ req,
+		/** @type {import('express').Response} */ res,
+		next
+	) => {
 		try {
 			await handler(req, res);
 		} catch (e) {
@@ -250,23 +276,18 @@ function SpotifyUrl(url) {
  *
  * @param {Types.ApiOptions} opts
  */
-const run = (sdk, opts = {}) => {
+const run = (opts = {}) => {
 	const options = {
 		...DEFAULT_OPTS,
 		...opts
 	};
 
-	const app = express();
+	const app = Router();
 
 	app.get(
 		'/artist/:id',
 		apiWrapper(async (req, res) => {
-			/** @type {SpotifyApi} */
-			const sdk = req.sdk;
-			const results = memoCache.exists(req.params.id)
-				? memoCache.get(req.params.id)
-				: await sdk.artists.topTracks(req.params.id);
-			memoCache.save(req.params.id, results);
+			const results = await memo.use(req.params.id, () => req.sdk.artists.topTracks(req.params.id));
 
 			return res.json({
 				tracks: results.tracks.map(trim.track)
@@ -277,13 +298,7 @@ const run = (sdk, opts = {}) => {
 	app.get(
 		'/album/:id',
 		apiWrapper(async (req, res) => {
-			/** @type {SpotifyApi} */
-			const sdk = req.sdk;
-
-			const album = memoCache.exists(req.params.id)
-				? memoCache.get(req.params.id)
-				: await sdk.albums.get(req.params.id);
-			memoCache.save(req.params.id, album);
+			const album = await memo.use(req.params.id, () => req.sdk.albums.get(req.params.id));
 
 			return res.json({
 				tracks: album.tracks.items
@@ -299,35 +314,31 @@ const run = (sdk, opts = {}) => {
 	app.get(
 		'/search',
 		apiWrapper(async (req, res) => {
-			/** @type {SpotifyApi} */
-			const sdk = req.sdk;
-
 			if (isSpotifyUrl(req.query.q)) {
 				const { type, id } = SpotifyUrl(req.query.q);
-				const k = memoKey(type, id);
+				const key = memo.key(type, id);
 
 				switch (type) {
 					case 'track': {
-						const track = memoCache.exists(k) ? memoCache.get(k) : await sdk.tracks.get(id);
-						memoCache.save(k, track);
+						const track = await memo.use(key, () => req.sdk.tracks.get(id));
 
 						return res.json({
 							tracks: [trim.track(track)]
 						});
 					}
 					case 'artist': {
-						const topTracks = memoCache.exists(k)
-							? memoCache.get(k)
-							: await sdk.artists.topTracks(id);
-						memoCache.save(k, topTracks);
+						const topTracks = await memo.use(key, () => req.sdk.artists.topTracks(id));
 
 						return res.json({
 							tracks: topTracks.tracks.map(trim.track)
 						});
 					}
 					case 'album': {
-						const { tracks } = memoCache.exists(k) ? memoCache.get(k) : await sdk.albums.get(id);
-						memoCache.save(k, tracks);
+						const tracks = await memo.use(
+							key,
+							() => req.sdk.albums.get(id),
+							({ tracks }) => tracks
+						);
 
 						return res.json({
 							tracks: tracks.items.map(trim.track)
@@ -336,11 +347,13 @@ const run = (sdk, opts = {}) => {
 				}
 			}
 
-			const results = await sdk.search(
-				req.query.q,
-				['track', 'artist', 'album'],
-				options.market,
-				options.searchQueryLimit
+			const results = await memo.use(memo.key('search', req.query.q), () =>
+				req.sdk.search(
+					req.query.q,
+					['track', 'artist', 'album'],
+					options.market,
+					options.searchQueryLimit
+				)
 			);
 
 			return res.json({
@@ -354,11 +367,9 @@ const run = (sdk, opts = {}) => {
 	app.get(
 		'/add',
 		apiWrapper(async (req, res) => {
-			/** @type {SpotifyApi} */
-			const sdk = req.sdk;
+			const { queue } = await req.sdk.player.getUsersQueue();
 
-			const { queue } = await sdk.player.getUsersQueue();
-
+			// Check if the item the user is trying to add is already in the queue
 			if (queue.some((item) => item.uri === req.query.uri)) {
 				req.comms.error('Song already in queue');
 				return res.json({
@@ -366,12 +377,11 @@ const run = (sdk, opts = {}) => {
 				});
 			}
 
-			const track = memoCache.exists(req.query.uri)
-				? memoCache.get(req.query.uri)
-				: await sdk.tracks.get(deconstructUri(req.query.uri).id);
-			memoCache.save(req.query.uri, track);
+			const track = await memo.use(req.query.uri, () =>
+				req.sdk.tracks.get(deconstructUri(req.query.uri).id)
+			);
 
-			const result = await sdk.player.addItemToPlaybackQueue(req.query.uri);
+			const result = await req.sdk.player.addItemToPlaybackQueue(req.query.uri);
 
 			req.comms.message(`Added <em>${track.name}</em>`, 'track');
 
@@ -385,9 +395,7 @@ const run = (sdk, opts = {}) => {
 	app.get(
 		'/info',
 		apiWrapper(async (req, res) => {
-			/** @type {SpotifyApi} */
-			const sdk = req.sdk;
-			const track = await sdk.player.getCurrentlyPlayingTrack(options.market, 'episode');
+			const track = await req.sdk.player.getCurrentlyPlayingTrack(options.market, 'episode');
 
 			if (!track) {
 				return res.json({
@@ -395,15 +403,12 @@ const run = (sdk, opts = {}) => {
 				});
 			}
 
-			const k = memoKey(track.context.uri);
-
-			const context = memoCache.exists(k)
-				? memoCache.get(k)
-				: await getContext(sdk, track.context.uri);
-			memoCache.save(k, context);
+			const context = await memo.use(track.context.uri, () =>
+				getContext(req.sdk, track.context.uri)
+			);
 
 			return res.json({
-				isPlaying: track?.is_playing,
+				isPlaying: track.is_playing,
 				track:
 					track.currently_playing_type === 'episode'
 						? trim.episode(track.item)
@@ -421,9 +426,7 @@ const run = (sdk, opts = {}) => {
 	app.get(
 		'/queue',
 		apiWrapper(async (req, res) => {
-			/** @type {SpotifyApi} */
-			const sdk = req.sdk;
-			const queue = await sdk.player.getUsersQueue();
+			const queue = await req.sdk.player.getUsersQueue();
 
 			if (!queue) {
 				return res.json({
@@ -434,17 +437,15 @@ const run = (sdk, opts = {}) => {
 			return res.json({
 				items: [queue.currently_playing, ...queue.queue]
 					.filter((item) => !!item)
+					.filter((item) => !['episode', 'track'].includes(item.type))
 					.map((item) => {
 						switch (item.type) {
 							case 'episode':
 								return trim.episode(item);
-							case 'track':
-								return trim.track(item);
 							default:
-								return item;
+								return trim.track(item);
 						}
-					}),
-				full: queue
+					})
 			});
 		})
 	);
@@ -452,11 +453,10 @@ const run = (sdk, opts = {}) => {
 	app.get(
 		'/skipForward',
 		apiWrapper(async (req, res) => {
-			/** @type {SpotifyApi} */
-			const sdk = req.sdk;
-			await sdk.player.skipToNext();
+			await req.sdk.player.skipToNext();
 
 			req.comms.message('Skipped forward');
+			events.system('skippedForward');
 
 			return res.json({
 				success: true
@@ -467,11 +467,10 @@ const run = (sdk, opts = {}) => {
 	app.get(
 		'/skipBackward',
 		apiWrapper(async (req, res) => {
-			/** @type {SpotifyApi} */
-			const sdk = req.sdk;
-			await sdk.player.skipToPrevious();
+			await req.sdk.player.skipToPrevious();
 
 			req.comms.message('Skipped back');
+			events.system('skippedBackward');
 
 			return res.json({
 				success: true
@@ -482,11 +481,10 @@ const run = (sdk, opts = {}) => {
 	app.get(
 		'/play',
 		apiWrapper(async (req, res) => {
-			/** @type {SpotifyApi} */
-			const sdk = req.sdk;
-			await sdk.player.startResumePlayback();
+			await req.sdk.player.startResumePlayback();
 
 			req.comms.message('Pressed play');
+			events.system('play');
 
 			return res.json({
 				success: true
@@ -497,11 +495,10 @@ const run = (sdk, opts = {}) => {
 	app.get(
 		'/pause',
 		apiWrapper(async (req, res) => {
-			/** @type {SpotifyApi} */
-			const sdk = req.sdk;
-			await sdk.player.pausePlayback();
+			await req.sdk.player.pausePlayback();
 
 			req.comms.message('Pressed pause');
+			events.system('pause');
 
 			return res.json({
 				success: true

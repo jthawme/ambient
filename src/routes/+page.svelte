@@ -6,7 +6,7 @@
 	import ResultsList from '$lib/components/ResultsList.svelte';
 	import { api } from '$lib/store';
 	import { toastItems } from '$lib/toast';
-	import * as Types from '$lib/types';
+	import * as Types from '$server/types';
 	import { timer } from '$lib/utils';
 	import { CaretBack } from 'svelte-ionicons';
 

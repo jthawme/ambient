@@ -1,4 +1,5 @@
 import { derived, writable } from 'svelte/store';
+import { toastItems } from './toast';
 
 export const liveData = writable(false);
 export const authenticated = writable(false);
@@ -73,7 +74,10 @@ export const api = derived([address], ([$address]) => {
 
 			return result;
 		} catch (e) {
-			console.log('Api Error');
+			toastItems.addItem({
+				message: 'Api Error',
+				type: 'error'
+			});
 
 			throw e;
 		}

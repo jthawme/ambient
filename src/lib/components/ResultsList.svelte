@@ -1,6 +1,6 @@
 <script>
 	import MediaItem from './MediaItem.svelte';
-	import * as Types from '$lib/types';
+	import * as Types from '$server/types';
 
 	/**
 	 * @typedef {object} ResultsListProps

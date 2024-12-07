@@ -1,4 +1,4 @@
-export const memoCache = {
+export const memo = {
 	items: {},
 
 	/**
@@ -36,7 +36,28 @@ export const memoCache = {
 
 	delete(key) {
 		delete this.items[key];
+	},
+
+	/**
+	 * A utility that first checks the cache and if not runs the function and saved the return
+	 *
+	 * @param {string} key
+	 * @param {() => Promise<any>} func
+	 * @param {(data: any) => any} transform
+	 * @returns
+	 */
+	async use(key, func, transform = (value) => value) {
+		if (this.exists(key)) {
+			return this.get(key);
+		} else {
+			this.delete(key);
+			const resp = transform(await Promise.resolve().then(() => func()));
+			this.save(key, resp);
+			return resp;
+		}
+	},
+
+	key(...args) {
+		return args.join(':');
 	}
 };
-
-export const memoKey = (...keys) => keys.join(':');

@@ -5,11 +5,15 @@
 	import ImageLoad from '$lib/components/ImageLoad.svelte';
 	import PlayingTracker from '$lib/components/PlayingTracker.svelte';
 	import LoadingIndicator from '$lib/components/LoadingIndicator.svelte';
+	import * as Types from '$server/types.js';
 
+	/**
+	 * @type {Types.ApiInfoResponse | null | {noTrack: boolean}}
+	 */
 	let playing = $state(null);
 
 	let subtitle = $derived.by(() => {
-		if (!playing) {
+		if (!playing || 'noTrack' in playing) {
 			return '';
 		}
 
@@ -17,7 +21,7 @@
 			return 'Paused';
 		}
 
-		switch (playing?.context.type) {
+		switch (playing.context?.type) {
 			case 'album':
 				return [playing.track.number, playing.context.total].join(' – ');
 			default:
@@ -30,6 +34,8 @@
 
 {#if !playing}
 	<LoadingIndicator floating />
+{:else if 'noTrack' in playing}
+	No Track playing currently
 {:else}
 	<div class="page bg-color-bg">
 		<div class="top">

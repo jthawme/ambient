@@ -1,23 +1,36 @@
 import { SpotifyApi } from '@spotify/web-api-ts-sdk';
 import dotenv from 'dotenv';
-import { handler } from '../build/handler.js';
 import express from 'express';
 import ip from 'ip';
 import cors from 'cors';
-import { spawn } from 'node:child_process';
-import os from 'node:os';
 import { createServer } from 'node:http';
 import { Server } from 'socket.io';
+import deepmerge from 'deepmerge';
 
 import ApiRoutes from './api.js';
 import SpotifyRoutes from './spotify.js';
-import { ERROR } from './constants.js';
-
-// const USER_OPTIONS = await import("../display.config.js").then(module => module.default).catch(() => {});
+import { ERROR, EVENT } from './constants.js';
+import * as Types from './types.js';
+import { events } from './events.js';
+import { comms } from './comms.js';
 
 dotenv.config();
 
-const PORT = process.env.PORT ?? 3000;
+const DEFAULT_OPTIONS = {
+	port: process.env.PORT ?? 3000,
+	spotify: {
+		client_id: process.env.SPOTIFY_CLIENT_ID,
+		client_secret: process.env.SPOTIFY_CLIENT_SECRET
+	}
+};
+
+/** @type {Partial<Types.SpotifyAmbientDisplayOptions>} */
+const USER_OPTIONS = await import('../display.config.js')
+	.then((module) => module.default)
+	.catch(() => {});
+
+const OPTIONS = deepmerge(DEFAULT_OPTIONS, USER_OPTIONS);
+
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
@@ -25,42 +38,37 @@ const io = new Server(server, {
 		origin: '*'
 	}
 });
+const commsObject = comms(io);
 
 app.use(express.json());
 app.use(cors());
 
+/**
+ * A mutable object, to which we can attach the spotify instance onto
+ */
 const sdk = {
 	/** @type {SpotifyApi | null} */
 	current: null
 };
 
-const comms = (_io) => {
-	const methods = {
-		message(message, type = 'info') {
-			return _io.emit('message', {
-				type,
-				message
-			});
-		},
-		error(message) {
-			return methods.message(`Error: ${message}`, 'error');
-		}
-	};
-
-	return methods;
-};
-
+/**
+ * Middleware which attachs the spotify intance and the socket io instance
+ */
 app.use((req, res, next) => {
 	req.sdk = sdk.current;
 	req.io = io;
-	req.comms = comms(io);
+	req.comms = commsObject;
 	next();
 });
 
-// io.on('connection', (socket) => {
-// 	console.log('a user connected');
-// });
-
+/**
+ * A middleware for routes that require the spotify sdk
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ * @returns {void}
+ */
 const sdkProtect = (req, res, next) => {
 	if (!req.sdk) {
 		return res.json({
@@ -72,40 +80,39 @@ const sdkProtect = (req, res, next) => {
 	next();
 };
 
-const spotify = await SpotifyRoutes(sdk, (item) => io.emit('message', item));
+// Mount the spotify sub app
+const spotify = await SpotifyRoutes(sdk, { ...(OPTIONS.spotify ?? {}), port: OPTIONS.port });
 app.use('/spotify', spotify);
-app.use('/api', sdkProtect, ApiRoutes());
 
-// // let SvelteKit handle everything else, including serving prerendered pages and static assets
-if (process.env.NODE_ENV === 'production') {
-	app.use(handler);
+// Mount the api sub app
+app.use('/api', sdkProtect, ApiRoutes(OPTIONS.api ?? {}));
+
+// If the app is running in development mode, catch the player redirect and redirect to the sveltekit route instead
+if (process.env.NODE_ENV === 'development') {
+	app.get(USER_OPTIONS.spotify?.authenticatedRedirect ?? '/player', (req, res) =>
+		res.redirect('http://localhost:5173/player')
+	);
 } else {
-	app.get('/player', (req, res) => res.redirect('http://localhost:5173/player'));
+	// If its production mount the built sveltekit app
+	const { handler } = await import('../build/handler.js');
+	app.use(handler);
 }
 
 app.use((err, req, res, next) => {
-	console.error(err);
+	events.error(ERROR.GENERAL, err);
+
 	return res.json({
 		error: true,
 		message: ERROR.GENERAL
 	});
 });
 
-function ExecuteChromium() {
-	spawn(`/usr/bin/chromium-browser`, [
-		'--start-maximized',
-		'--kiosk',
-		'--noerrdialogs',
-		'--disable-infobars',
-		'--no-first-run',
-		`http://${ip.address()}:${PORT}/player`
-	]);
-}
+events.on(EVENT.APP_ERROR, ({ message }) => {
+	commsObject.error(message);
+});
 
-server.listen(PORT, () => {
-	console.log(`Server listening on port http://${ip.address()}:${PORT}`);
+server.listen(OPTIONS.port, () => {
+	console.log(`App running on port http://${ip.address()}:${OPTIONS.port}`);
 
-	if (os.platform() === 'linux') {
-		ExecuteChromium();
-	}
+	events.system('start');
 });

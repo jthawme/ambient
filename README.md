@@ -11,3 +11,7 @@ It also protects against the DREADED playlist switch.
 ## Installing and running
 
 So far, you have to just pull the entire project, run `yarn build` and then you can run the project from `node server` which runs the server and the built sveltekit project
+
+## Reasoning
+
+Spotify's API is excellent, but without being approved for the expanded API grant, its limited to really only hobbyist stuff. This means that you can register your own app, and run this locally and have a customised Spotify Jam scenario, because its running through your credentials. Locally served

@@ -1,11 +1,14 @@
 import { SpotifyApi } from '@spotify/web-api-ts-sdk';
-import express from 'express';
+import { Router } from 'express';
 import fetch from 'node-fetch';
 import fs from 'node:fs/promises';
 
 import { ERROR } from './constants.js';
 import * as Types from './types.js';
+import { events } from './events.js';
+import { mergeOptions } from './utils.js';
 
+// These scoped items are fixed and necessary for the app to run
 const SCOPE = [
 	'user-read-currently-playing',
 	'user-read-playback-state',
@@ -13,17 +16,25 @@ const SCOPE = [
 ];
 
 const DEFAULT_OPTS = {
-	port: 3000,
 	origin: 'http://localhost',
 	routePrefix: '/spotify',
+	routeToken: '/token',
 	authenticatedRedirect: '/player',
-	tokenJson: './server/spotify_auth.json',
-	scope: ['user-read-currently-playing', 'user-read-playback-state', 'user-modify-playback-state']
+	accessTokenJsonLocation: './server/spotify_auth.json',
+	scope: []
 };
 
 const SpotifyAuth = {
 	token: {
-		refresh(refresh_token) {
+		/**
+		 * Exchanges a refresh token for a new access token.
+		 *
+		 * Potentially doesnt return another refresh token, which documentation says to reuse the old one
+		 *
+		 * @param {string} refresh_token
+		 * @returns {Promise<Types.SpotifyAccessToken | {error: string}>}
+		 */
+		refresh(client_id, client_secret, refresh_token) {
 			return fetch('https://accounts.spotify.com/api/token', {
 				method: 'POST',
 				headers: {
@@ -32,13 +43,20 @@ const SpotifyAuth = {
 				body: new URLSearchParams({
 					grant_type: 'refresh_token',
 					refresh_token,
-					client_id: process.env.SPOTIFY_CLIENT_ID,
-					client_secret: process.env.SPOTIFY_CLIENT_SECRET
+					client_id,
+					client_secret
 				})
 			}).then((resp) => resp.json());
 		},
 
-		get(code, redirect_uri) {
+		/**
+		 * Exchanges a code for an access token
+		 *
+		 * @param {string} code
+		 * @param {string} redirect_uri
+		 * @returns {Promise<Types.SpotifyAccessToken>}
+		 */
+		get(client_id, client_secret, code, redirect_uri) {
 			return fetch('https://accounts.spotify.com/api/token', {
 				body: new URLSearchParams({
 					code,
@@ -49,93 +67,105 @@ const SpotifyAuth = {
 				headers: {
 					'content-type': 'application/x-www-form-urlencoded',
 					Authorization:
-						'Basic ' +
-						new Buffer.from(
-							process.env.SPOTIFY_CLIENT_ID + ':' + process.env.SPOTIFY_CLIENT_SECRET
-						).toString('base64')
+						'Basic ' + new Buffer.from(client_id + ':' + client_secret).toString('base64')
 				}
 			}).then((resp) => resp.json());
 		}
 	}
 };
 
-async function previousAuth(filePath) {
+/**
+ *
+ * @param {import('./types.js').SpotifyOptions} options
+ * @returns {Promise<Types.SpotifyAccessToken | false>}
+ */
+async function initialisePreviousAuth({ accessTokenJsonLocation, client_id, client_secret }) {
 	try {
-		const previousAuth = await fs.readFile(filePath, 'utf-8');
+		// Attemps to read the json file of auth, will throw an error if it doesn't exist
+		const previousAuth = await fs.readFile(accessTokenJsonLocation, 'utf-8');
+
+		// Parse the object to utilise it
 		const previous = JSON.parse(previousAuth);
 
-		const data = await SpotifyAuth.token.refresh(previous.refresh_token, previous.access_token);
+		const { error, ...token } = await SpotifyAuth.token.refresh(
+			client_id,
+			client_secret,
+			previous.refresh_token,
+			previous.access_token
+		);
 
-		if (data.error) {
-			if (data.error === 'invalid_request') {
+		if (error) {
+			// This is a shot in the dark, but this was throwing sometimes in quick success of accessing, so wondered if its a rate limit thing
+			if (error === 'invalid_request') {
 				return previous;
 			}
 
-			return false;
+			throw new Error('Invalid token');
 		}
 
+		// Intialise the return with the refresh token, in case it didn't come in the refreshed call. Will get overwritten if it did
 		return {
 			refresh_token: previous.refresh_token,
-			...data
+			...token
 		};
-	} catch (e) {
-		// console.error(e);
+	} catch {
 		return false;
 	}
 }
 
-class FixedResponseDeserializer {
-	static async deserialize(response) {
-		const text = await response.text();
-
-		const contentType = response.headers.get('content-type') ?? '';
-
-		if (text.length > 0 && contentType.includes('application/json')) {
-			const json = JSON.parse(text);
-			return json;
-		}
-
-		return null;
-	}
-}
-
-async function persistSdk(filePath, accessTokenData, onMessage) {
+/**
+ *
+ * @param {Types.SpotifyOptions['accessTokenJsonLocation']} filePath
+ * @param {string} client_id
+ * @param {Types.SpotifyAccessToken} accessTokenData
+ * @returns
+ */
+async function persistSdk(filePath, client_id, accessTokenData) {
+	// Persist the access token data to disk
 	await fs.writeFile(filePath, JSON.stringify(accessTokenData), 'utf-8');
-	return SpotifyApi.withAccessToken(process.env.SPOTIFY_CLIENT_ID, accessTokenData, {
-		deserializer: FixedResponseDeserializer,
+
+	return SpotifyApi.withAccessToken(client_id, accessTokenData, {
+		deserializer: {
+			async deserialize(response) {
+				const text = await response.text();
+
+				const contentType = response.headers.get('content-type') ?? '';
+
+				if (text.length > 0 && contentType.includes('application/json')) {
+					const json = JSON.parse(text);
+					return json;
+				}
+
+				return null;
+			}
+		},
 		responseValidator: {
 			async validateResponse(response) {
 				switch (response.status) {
 					case 401:
-						onMessage({
-							message: `Bad token - Re-auth`,
-							type: 'error'
-						});
+						events.error(`Bad token - Re-auth`);
+
 						throw new Error(
 							'Bad or expired token. This can happen if the user revoked a token or the access token has expired. You should re-authenticate the user.'
 						);
 					case 403: {
-						onMessage({
-							message: `Bad token - wrong credentials`,
-							type: 'error'
-						});
+						events.error(`Bad token - wrong credentials`);
+
 						const body = await response.text();
 						throw new Error(
 							`Bad OAuth request (wrong consumer key, bad nonce, expired timestamp...). Unfortunately, re-authenticating the user won't help here. Body: ${body}`
 						);
 					}
 					case 429:
-						onMessage({
-							message: `Rate Limit - ${Math.round((parseInt(response.headers.get('Retry-After')) / 60) * 10) / 10}s`,
-							type: 'error'
-						});
+						events.error(
+							`Rate Limit - ${Math.round((parseInt(response.headers.get('Retry-After')) / 60) * 10) / 10}s`
+						);
+
 						throw new Error('The app has exceeded its rate limits.');
 					default:
 						if (!response.status.toString().startsWith('20')) {
-							onMessage({
-								message: `Spotify Api Error`,
-								type: 'error'
-							});
+							events.error(`Spotify Api Error`);
+
 							const body = await response.text();
 							throw new Error(
 								`Unrecognised response code: ${response.status} - ${response.statusText}. Body: ${body}`
@@ -146,10 +176,7 @@ async function persistSdk(filePath, accessTokenData, onMessage) {
 		},
 		errorHandler: {
 			handleErrors(error) {
-				onMessage({
-					message: error.message,
-					type: 'error'
-				});
+				//
 			}
 		}
 	});
@@ -158,31 +185,42 @@ async function persistSdk(filePath, accessTokenData, onMessage) {
 /**
  *
  * @param {{current: null | SpotifyApi}} sdk
- * @param {({message: string, type: "info" | "error" | "track"}) => void} onMessage
- * @param {Partial<Types.SpotifyOptions>} opts
+ * @param {Partial<Types.SpotifyOptions> & {port: number}} opts
  */
-const run = async (sdk, onMessage, opts = {}) => {
-	const options = {
-		...DEFAULT_OPTS,
-		...opts
-	};
+const run = async (sdk, opts = {}) => {
+	/** @type {Types.SpotifyOptions & {port: number}} */
+	const options = mergeOptions(opts, DEFAULT_OPTS);
 
-	const refreshedAuth = await previousAuth(options.tokenJson);
+	// First check if there is previous auth that is valid
+	const refreshedAuth = await initialisePreviousAuth(options);
 
+	// If there is, initialise it while also persisting the auth
 	if (refreshedAuth) {
-		sdk.current = await persistSdk(options.tokenJson, refreshedAuth, onMessage);
+		sdk.current = await persistSdk(
+			options.accessTokenJsonLocation,
+			options.client_id,
+			refreshedAuth
+		);
 	}
 
-	const app = express();
+	// Initalise a sub router
+	const app = Router();
+
+	// Construct the spotify redirect_uri
 	const redirect_uri = [
 		[options.origin, options.port].join(':'),
 		options.routePrefix,
-		'/token'
+		options.routeToken
 	].join('');
 
-	const scope = [...SCOPE, options.scope].join(' ');
+	// Merge scopes, ensuring the necessary ones are applied and duplicates are removed
+	const scope = [...new Set([...SCOPE, options.scope])].join(' ');
 
-	app.get('/start', function (req, res) {
+	/**
+	 * The start route, kicks off the authorisation process, by redirecting to the spotify authorise page
+	 */
+	app.get('/start', (req, res) => {
+		// If the SDK is already attached to the request object, assume its authenticated and bypass the start
 		if (req.sdk) {
 			res.redirect(`${options.authenticatedRedirect}?authenticated=true`);
 			return;
@@ -191,7 +229,7 @@ const run = async (sdk, onMessage, opts = {}) => {
 		const url = new URL('https://accounts.spotify.com/authorize');
 		url.search = new URLSearchParams({
 			response_type: 'code',
-			client_id: process.env.SPOTIFY_CLIENT_ID,
+			client_id: options.client_id,
 			scope,
 			redirect_uri
 		});
@@ -199,7 +237,11 @@ const run = async (sdk, onMessage, opts = {}) => {
 		res.redirect(url.toString());
 	});
 
-	app.get('/token', async (req, res) => {
+	/**
+	 * This route is the route that is redirected to after spotify has authed the user
+	 */
+	app.get(options.routeToken, async (req, res) => {
+		// If the SDK is already attached to the request object, assume its authenticated and bypass the start
 		if (req.sdk) {
 			res.redirect(`${options.authenticatedRedirect}?authenticated=true`);
 			return;
@@ -209,14 +251,25 @@ const run = async (sdk, onMessage, opts = {}) => {
 		var error = req.query.error || null;
 
 		if (error) {
+			events.error(ERROR.SPOTIFY_UNAUTHENTICATED);
+
 			return res.json({
 				error: true,
 				message: ERROR.SPOTIFY_UNAUTHENTICATED
 			});
 		}
 
-		const data = await SpotifyAuth.token.get(code, redirect_uri);
-		sdk.current = await persistSdk(options.tokenJson, data, onMessage);
+		const accessTokenJson = await SpotifyAuth.token.get(
+			options.client_id,
+			options.client_secret,
+			code,
+			redirect_uri
+		);
+		sdk.current = await persistSdk(
+			options.accessTokenJsonLocation,
+			options.client_id,
+			accessTokenJson
+		);
 
 		res.redirect(`${options.authenticatedRedirect}?authenticated=true`);
 	});

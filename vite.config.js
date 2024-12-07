@@ -1,11 +1,14 @@
 import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vite';
+import { defineConfig, searchForWorkspaceRoot } from 'vite';
 import svg from '@poppanator/sveltekit-svg';
 import BuildManifest from './tools/BuildManifest.js';
 
 export default defineConfig({
 	server: {
-		host: true
+		host: true,
+		fs: {
+			allow: [searchForWorkspaceRoot(process.cwd()), './server']
+		}
 	},
 	plugins: [
 		sveltekit(),

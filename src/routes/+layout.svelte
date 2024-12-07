@@ -22,7 +22,6 @@
 	}
 
 	$effect(() => {
-		console.log($socket);
 		$socket?.on('message', (item) => {
 			toastItems.addItem(item);
 		});
