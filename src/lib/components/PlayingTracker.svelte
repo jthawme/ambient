@@ -11,7 +11,7 @@
 		});
 	});
 
-	let { playing = $bindable(null) } = $props();
+	let { playing = $bindable(null), auto = false, time = 5000, activate = $bindable() } = $props();
 
 	async function getPalette(image) {
 		const img = new Image();
@@ -46,7 +46,7 @@
 	function automateLoop() {
 		const run = async () => {
 			await getPlaying();
-			int.current = setTimeout(run, 5000);
+			int.current = window.setTimeout(run, time);
 		};
 		const int = { current: 0 };
 
@@ -58,6 +58,12 @@
 	}
 
 	$effect(() => {
-		return automateLoop();
+		if (auto) {
+			return automateLoop();
+		} else {
+			getPlaying();
+		}
+
+		activate = getPlaying;
 	});
 </script>

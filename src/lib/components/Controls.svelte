@@ -2,7 +2,7 @@
 	import { Pause, Play, PlaySkipBack, PlaySkipForward } from 'svelte-ionicons';
 	import { api } from '$lib/store';
 
-	const { playing = false, title } = $props();
+	const { playing = false, title, onTrigger } = $props();
 
 	/**
 	 * A variable to create the illusion of immediate feedback
@@ -15,20 +15,24 @@
 
 	async function onSkipBackward() {
 		await $api.skipBackward();
+		onTrigger();
 	}
 
 	async function onPlay() {
 		eagerToggle = true;
 		await $api.play();
+		onTrigger();
 	}
 
 	async function onPause() {
 		eagerToggle = false;
 		await $api.pause();
+		onTrigger();
 	}
 
 	async function onSkipForward() {
 		await $api.skipForward();
+		onTrigger();
 	}
 
 	$effect(() => {

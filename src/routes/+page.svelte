@@ -7,6 +7,7 @@
 	import { api } from '$lib/store';
 	import { toastItems } from '$lib/toast';
 	import * as Types from '$lib/types';
+	import { timer } from '$lib/utils';
 	import { CaretBack } from 'svelte-ionicons';
 
 	/** @type {Types.ApiSearchResponse | null}*/
@@ -102,12 +103,20 @@
 		onRequest(() => $api.artist(item.id));
 		expanded = 'tracks';
 	}
+
+	let activate = $state(() => false);
+
+	async function onTrigger() {
+		await timer(2000);
+		activate();
+	}
 </script>
 
-<PlayingTracker bind:playing />
+<PlayingTracker auto time={30000} bind:playing bind:activate />
 
 <div class="page bg-color-bg" class:loading>
 	<Controls
+		{onTrigger}
 		playing={playing?.isPlaying}
 		title={[playing?.track.normalised.title, playing?.track.normalised.subtitle].join(' - ')}
 	/>

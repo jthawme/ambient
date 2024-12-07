@@ -17,16 +17,16 @@
 			return 'Paused';
 		}
 
-		switch (playing.context.type) {
+		switch (playing?.context.type) {
 			case 'album':
 				return [playing.track.number, playing.context.total].join(' – ');
 			default:
-				return playing?.context?.normalised.subtitle ?? '';
+				return playing?.context?.normalised?.subtitle ?? '';
 		}
 	});
 </script>
 
-<PlayingTracker bind:playing />
+<PlayingTracker auto bind:playing />
 
 {#if !playing}
 	<LoadingIndicator floating />
@@ -34,7 +34,7 @@
 	<div class="page bg-color-bg">
 		<div class="top">
 			<div class="context color-1">
-				<span>{playing?.context.normalised.title}</span>
+				<span>{playing?.context?.normalised?.title ?? playing?.track?.title}</span>
 				<span class="size-small-2">{subtitle}</span>
 			</div>
 		</div>
