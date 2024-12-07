@@ -21,8 +21,12 @@
 		authenticated.set(serverAuthenticated);
 	}
 
-	$socket.on('message', (item) => {
-		toastItems.addItem(item);
+	$effect(() => {
+		$socket.on('message', (item) => {
+			toastItems.addItem(item);
+		});
+
+		return () => $socket.disconnect();
 	});
 
 	$effect(() => {

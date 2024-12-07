@@ -118,7 +118,7 @@
 				<input
 					class="color-bg"
 					type="search"
-					placeholder="Track, Album, Artist..."
+					placeholder="URL, Track, Album, Artist..."
 					name="q"
 					disabled={loading}
 				/>

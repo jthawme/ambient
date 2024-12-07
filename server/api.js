@@ -1,7 +1,9 @@
 import { SpotifyApi } from '@spotify/web-api-ts-sdk';
 import express from 'express';
 import * as Types from './types.js';
+import { memoCache, memoKey } from './memo.js';
 
+/** @type {Types.ApiOptions} */
 const DEFAULT_OPTS = {
 	market: 'GB',
 	searchQueryLimit: 10
@@ -207,7 +209,8 @@ const getContext = async (sdk, uri) => {
 				return {};
 			}
 		}
-	} catch {
+	} catch (e) {
+		console.log(e);
 		return {};
 	}
 };
@@ -218,9 +221,31 @@ function apiWrapper(handler) {
 			await handler(req, res);
 		} catch (e) {
 			console.error('API Error', e);
-			req.comms.error('Check Logs');
+
+			if (e.message.includes('The app has exceeded its rate limits')) {
+				req.comms.error('Rate limit exceeded');
+			} else {
+				req.comms.error('Check Logs');
+			}
 			next(e);
 		}
+	};
+}
+
+const SpotifyRegExp = new RegExp(
+	/https?:\/\/(?:embed\.|open\.)(?:spotify\.com\/)(?:(track|album|artist)\/|\?uri=spotify:(track|album|artist):)((\w|-){22})/
+);
+
+function isSpotifyUrl(url) {
+	return SpotifyRegExp.test(url);
+}
+
+function SpotifyUrl(url) {
+	const [_, typeOne, typeTwo, id] = SpotifyRegExp.exec(url);
+
+	return {
+		type: typeOne || typeTwo,
+		id
 	};
 }
 
@@ -241,7 +266,10 @@ const run = (sdk, opts = {}) => {
 		apiWrapper(async (req, res) => {
 			/** @type {SpotifyApi} */
 			const sdk = req.sdk;
-			const results = await sdk.artists.topTracks(req.params.id);
+			const results = memoCache.exists(req.params.id)
+				? memoCache.get(req.params.id)
+				: await sdk.artists.topTracks(req.params.id);
+			memoCache.save(req.params.id, results);
 
 			return res.json({
 				tracks: results.tracks.map(trim.track)
@@ -255,7 +283,10 @@ const run = (sdk, opts = {}) => {
 			/** @type {SpotifyApi} */
 			const sdk = req.sdk;
 
-			const album = await sdk.albums.get(req.params.id);
+			const album = memoCache.exists(req.params.id)
+				? memoCache.get(req.params.id)
+				: await sdk.albums.get(req.params.id);
+			memoCache.save(req.params.id, album);
 
 			return res.json({
 				tracks: album.tracks.items
@@ -273,6 +304,41 @@ const run = (sdk, opts = {}) => {
 		apiWrapper(async (req, res) => {
 			/** @type {SpotifyApi} */
 			const sdk = req.sdk;
+
+			if (isSpotifyUrl(req.query.q)) {
+				const { type, id } = SpotifyUrl(req.query.q);
+				const k = memoKey(type, id);
+
+				switch (type) {
+					case 'track': {
+						const track = memoCache.exists(k) ? memoCache.get(k) : await sdk.tracks.get(id);
+						memoCache.save(k, track);
+
+						return res.json({
+							tracks: [trim.track(track)]
+						});
+					}
+					case 'artist': {
+						const topTracks = memoCache.exists(k)
+							? memoCache.get(k)
+							: await sdk.artists.topTracks(id);
+						memoCache.save(k, topTracks);
+
+						return res.json({
+							tracks: topTracks.tracks.map(trim.track)
+						});
+					}
+					case 'album': {
+						const { tracks } = memoCache.exists(k) ? memoCache.get(k) : await sdk.albums.get(id);
+						memoCache.save(k, tracks);
+
+						return res.json({
+							tracks: tracks.items.map(trim.track)
+						});
+					}
+				}
+			}
+
 			const results = await sdk.search(
 				req.query.q,
 				['track', 'artist', 'album'],
@@ -303,7 +369,10 @@ const run = (sdk, opts = {}) => {
 				});
 			}
 
-			const track = await sdk.tracks.get(deconstructUri(req.query.uri).id);
+			const track = memoCache.exists(req.query.uri)
+				? memoCache.get(req.query.uri)
+				: await sdk.tracks.get(deconstructUri(req.query.uri).id);
+			memoCache.save(req.query.uri, track);
 
 			const result = await sdk.player.addItemToPlaybackQueue(req.query.uri);
 
@@ -329,7 +398,12 @@ const run = (sdk, opts = {}) => {
 				});
 			}
 
-			const context = await getContext(sdk, track.context.uri);
+			const k = memoKey(track.context.uri);
+
+			const context = memoCache.exists(k)
+				? memoCache.get(k)
+				: await getContext(sdk, track.context.uri);
+			memoCache.save(k, context);
 
 			return res.json({
 				isPlaying: track?.is_playing,

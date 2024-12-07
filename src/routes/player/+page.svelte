@@ -4,6 +4,7 @@
 	import { fade } from 'svelte/transition';
 	import ImageLoad from '$lib/components/ImageLoad.svelte';
 	import PlayingTracker from '$lib/components/PlayingTracker.svelte';
+	import LoadingIndicator from '$lib/components/LoadingIndicator.svelte';
 
 	let playing = $state(null);
 
@@ -28,7 +29,7 @@
 <PlayingTracker bind:playing />
 
 {#if !playing}
-	Loading
+	<LoadingIndicator floating />
 {:else}
 	<div class="page bg-color-bg">
 		<div class="top">
