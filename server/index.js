@@ -85,7 +85,7 @@ const spotify = await SpotifyRoutes(sdk, { ...(OPTIONS.spotify ?? {}), port: OPT
 app.use('/spotify', spotify);
 
 // Mount the api sub app
-app.use('/api', sdkProtect, ApiRoutes(OPTIONS.api ?? {}));
+app.use('/api', sdkProtect, ApiRoutes(io, sdk, OPTIONS.api ?? {}));
 
 // If the app is running in development mode, catch the player redirect and redirect to the sveltekit route instead
 if (process.env.NODE_ENV === 'development') {

@@ -30,7 +30,7 @@
 	});
 </script>
 
-<PlayingTracker auto bind:playing />
+<PlayingTracker bind:playing />
 
 {#if !playing}
 	<LoadingIndicator floating />

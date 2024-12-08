@@ -72,11 +72,12 @@
 	/**
 	 *
 	 * @param {string} uri
+	 * @param {string} name
 	 */
-	async function addTrack(uri) {
+	async function addTrack(uri, name) {
 		try {
 			loading = true;
-			await $api.addTrack(uri);
+			await $api.addTrack(uri, name);
 		} catch (e) {
 			console.error(e);
 		} finally {
@@ -103,23 +104,17 @@
 		onRequest(() => $api.artist(item.id));
 		expanded = 'tracks';
 	}
-
-	let activate = $state(() => false);
-
-	async function onTrigger() {
-		await timer(2000);
-		activate();
-	}
 </script>
 
-<PlayingTracker auto time={30000} bind:playing bind:activate />
+<PlayingTracker bind:playing />
 
 <div class="page bg-color-bg" class:loading>
-	<Controls
-		{onTrigger}
-		playing={playing?.isPlaying}
-		title={[playing?.track.normalised.title, playing?.track.normalised.subtitle].join(' - ')}
-	/>
+	{#if playing && !('noTrack' in playing)}
+		<Controls
+			playing={playing.isPlaying}
+			title={[playing.track.normalised.title, playing.track.normalised.subtitle].join(' - ')}
+		/>
+	{/if}
 
 	<div class="page-content bg-color-3">
 		<form bind:this={searchForm} class="page-content-top" onsubmit={onSearch}>
@@ -162,7 +157,7 @@
 					{#snippet action(item)}
 						<button
 							disabled={loading}
-							onclick={() => addTrack(item.uri)}
+							onclick={() => addTrack(item.uri, item.title)}
 							class="btn-reset select-track size-small-1">Add Track</button
 						>
 					{/snippet}

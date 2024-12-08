@@ -2,7 +2,7 @@
 	import { Pause, Play, PlaySkipBack, PlaySkipForward } from 'svelte-ionicons';
 	import { api } from '$lib/store';
 
-	const { playing = false, title, onTrigger } = $props();
+	const { playing = false, title, onTrigger = () => {} } = $props();
 
 	/**
 	 * A variable to create the illusion of immediate feedback

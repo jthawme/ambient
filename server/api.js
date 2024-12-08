@@ -4,11 +4,15 @@ import { Router } from 'express';
 import * as Types from './types.js';
 import { memo } from './memo.js';
 import { events } from './events.js';
+import { asyncInterval } from './utils.js';
+import { Server } from 'socket.io';
 
 /** @type {Types.ApiOptions} */
 const DEFAULT_OPTS = {
 	market: 'GB',
-	searchQueryLimit: 10
+	searchQueryLimit: 10,
+	centralisedPolling: true,
+	centralisedPollingTimer: 5000
 };
 
 /**
@@ -187,6 +191,7 @@ const deconstructUri = (uri) => {
  *
  * @param {SpotifyApi} sdk
  * @param {string} uri
+ * @return {Promise<Types.ApiContext | {}>}
  */
 const getContext = async (sdk, uri) => {
 	const { type, id } = deconstructUri(uri);
@@ -272,169 +277,77 @@ function SpotifyUrl(url) {
 	};
 }
 
-/**
- *
- * @param {Types.ApiOptions} opts
- */
-const run = (opts = {}) => {
-	const options = {
-		...DEFAULT_OPTS,
-		...opts
-	};
+export const SpotifyInteract = {
+	artist: {
+		/**
+		 *
+		 * @param {SpotifyApi} sdk
+		 * @param {string} id
+		 */
+		async topTracks(sdk, id) {
+			/** @type {import('@spotify/web-api-ts-sdk').TopTracksResult} */
+			const results = await memo.use(memo.key('artist', 'tracks', id), () =>
+				sdk.artists.topTracks(id)
+			);
 
-	const app = Router();
-
-	app.get(
-		'/artist/:id',
-		apiWrapper(async (req, res) => {
-			const results = await memo.use(req.params.id, () => req.sdk.artists.topTracks(req.params.id));
-
-			return res.json({
+			return {
 				tracks: results.tracks.map(trim.track)
-			});
-		})
-	);
+			};
+		}
+	},
 
-	app.get(
-		'/album/:id',
-		apiWrapper(async (req, res) => {
-			const album = await memo.use(req.params.id, () => req.sdk.albums.get(req.params.id));
+	album: {
+		/**
+		 *
+		 * @param {SpotifyApi} sdk
+		 * @param {string} id
+		 */
+		async get(sdk, id) {
+			/** @type {import('@spotify/web-api-ts-sdk').Album} */
+			const album = await memo.use(memo.key('album', id), () => sdk.albums.get(id));
 
-			return res.json({
+			return {
 				tracks: album.tracks.items
 					.map((item) => ({
 						...item,
 						album: album
 					}))
 					.map(trim.track)
-			});
-		})
-	);
+			};
+		}
+	},
 
-	app.get(
-		'/search',
-		apiWrapper(async (req, res) => {
-			if (isSpotifyUrl(req.query.q)) {
-				const { type, id } = SpotifyUrl(req.query.q);
-				const key = memo.key(type, id);
+	track: {
+		/**
+		 *
+		 * @param {SpotifyApi} sdk
+		 * @param {string} id
+		 */
+		async get(sdk, id) {
+			/** @type {import('@spotify/web-api-ts-sdk').Track} */
+			const track = await memo.use(memo.key('track', id), () => sdk.tracks.get(id));
 
-				switch (type) {
-					case 'track': {
-						const track = await memo.use(key, () => req.sdk.tracks.get(id));
+			return {
+				tracks: [trim.track(track)]
+			};
+		}
+	},
 
-						return res.json({
-							tracks: [trim.track(track)]
-						});
-					}
-					case 'artist': {
-						const topTracks = await memo.use(key, () => req.sdk.artists.topTracks(id));
-
-						return res.json({
-							tracks: topTracks.tracks.map(trim.track)
-						});
-					}
-					case 'album': {
-						const tracks = await memo.use(
-							key,
-							() => req.sdk.albums.get(id),
-							({ tracks }) => tracks
-						);
-
-						return res.json({
-							tracks: tracks.items.map(trim.track)
-						});
-					}
-				}
-			}
-
-			const results = await memo.use(memo.key('search', req.query.q), () =>
-				req.sdk.search(
-					req.query.q,
-					['track', 'artist', 'album'],
-					options.market,
-					options.searchQueryLimit
-				)
-			);
-
-			return res.json({
-				albums: results.albums.items.map(trim.album),
-				artists: results.artists.items.map(trim.artist),
-				tracks: results.tracks.items.map(trim.track)
-			});
-		})
-	);
-
-	app.get(
-		'/add',
-		apiWrapper(async (req, res) => {
-			const { queue } = await req.sdk.player.getUsersQueue();
-
-			// Check if the item the user is trying to add is already in the queue
-			if (queue.some((item) => item.uri === req.query.uri)) {
-				req.comms.error('Song already in queue');
-				return res.json({
-					success: false
-				});
-			}
-
-			const track = await memo.use(req.query.uri, () =>
-				req.sdk.tracks.get(deconstructUri(req.query.uri).id)
-			);
-
-			const result = await req.sdk.player.addItemToPlaybackQueue(req.query.uri);
-
-			req.comms.message(`Added <em>${track.name}</em>`, 'track');
-
-			return res.json({
-				result,
-				track
-			});
-		})
-	);
-
-	app.get(
-		'/info',
-		apiWrapper(async (req, res) => {
-			const track = await req.sdk.player.getCurrentlyPlayingTrack(options.market, 'episode');
-
-			if (!track) {
-				return res.json({
-					noTrack: true
-				});
-			}
-
-			const context = await memo.use(track.context.uri, () =>
-				getContext(req.sdk, track.context.uri)
-			);
-
-			return res.json({
-				isPlaying: track.is_playing,
-				track:
-					track.currently_playing_type === 'episode'
-						? trim.episode(track.item)
-						: trim.track(track.item),
-				context,
-				player: {
-					current: track.progress_ms,
-					duration: track.item.duration_ms
-				}
-				// full: track
-			});
-		})
-	);
-
-	app.get(
-		'/queue',
-		apiWrapper(async (req, res) => {
-			const queue = await req.sdk.player.getUsersQueue();
+	queue: {
+		/**
+		 *
+		 * @param {SpotifyApi} sdk
+		 */
+		async get(sdk) {
+			const queue = await sdk.player.getUsersQueue();
 
 			if (!queue) {
-				return res.json({
+				return {
 					noQueue: true
-				});
+				};
 			}
 
-			return res.json({
+			return {
 				items: [queue.currently_playing, ...queue.queue]
 					.filter((item) => !!item)
 					.filter((item) => !['episode', 'track'].includes(item.type))
@@ -446,67 +359,303 @@ const run = (opts = {}) => {
 								return trim.track(item);
 						}
 					})
-			});
+			};
+		},
+
+		/**
+		 *
+		 * @param {SpotifyApi} sdk
+		 * @param {string} uri
+		 */
+		async add(sdk, uri) {
+			const { queue } = await sdk.player.getUsersQueue();
+
+			// Check if the item the user is trying to add is already in the queue
+			if (queue.some((item) => item.uri === uri)) {
+				return {
+					success: false
+				};
+			}
+
+			await sdk.player.addItemToPlaybackQueue(uri);
+
+			return {
+				success: true
+			};
+		}
+	},
+
+	search: {
+		/**
+		 *
+		 * @param {SpotifyApi} sdk
+		 * @param {string} q
+		 * @param {import('@spotify/web-api-ts-sdk').Market} q
+		 * @param {number} q
+		 */
+		async query(
+			sdk,
+			q,
+			market = DEFAULT_OPTS.market,
+			searchQueryLimit = DEFAULT_OPTS.searchQueryLimit
+		) {
+			const results = await memo.use(memo.key('search', q), () =>
+				sdk.search(q, ['track', 'artist', 'album'], market, searchQueryLimit)
+			);
+
+			return {
+				albums: results.albums.items.map(trim.album),
+				artists: results.artists.items.map(trim.artist),
+				tracks: results.tracks.items.map(trim.track)
+			};
+		}
+	},
+
+	context: {
+		/**
+		 *
+		 * @param {SpotifyApi} sdk
+		 */
+		async get(sdk, uri) {
+			/** @type {Types.ApiContext | {}} */
+			const context = await memo.use(uri, () => getContext(sdk, uri));
+
+			return context;
+		}
+	},
+
+	info: {
+		/**
+		 *
+		 * @param {SpotifyApi} sdk
+		 * @param {import('@spotify/web-api-ts-sdk').Market} [market]
+		 */
+		async get(sdk, market = DEFAULT_OPTS.market) {
+			const track = await sdk.player.getCurrentlyPlayingTrack(market, 'episode');
+
+			if (!track) {
+				return {
+					noTrack: true
+				};
+			}
+
+			const context = await SpotifyInteract.context.get(sdk, track.context.uri);
+
+			return {
+				isPlaying: track.is_playing,
+				track:
+					track.currently_playing_type === 'episode'
+						? trim.episode(track.item)
+						: trim.track(track.item),
+				context,
+				player: {
+					current: track.progress_ms,
+					duration: track.item.duration_ms
+				}
+			};
+		}
+	},
+
+	player: {
+		/**
+		 *
+		 * @param {SpotifyApi} sdk
+		 */
+		async play(sdk) {
+			await sdk.player.startResumePlayback();
+
+			return { success: true };
+		},
+		/**
+		 *
+		 * @param {SpotifyApi} sdk
+		 */
+		async pause(sdk) {
+			await sdk.player.pausePlayback();
+
+			return { success: true };
+		},
+		/**
+		 *
+		 * @param {SpotifyApi} sdk
+		 */
+		async forward(sdk) {
+			await sdk.player.skipToNext();
+
+			return { success: true };
+		},
+		/**
+		 *
+		 * @param {SpotifyApi} sdk
+		 */
+		async back(sdk) {
+			await sdk.player.skipToPrevious();
+
+			return { success: true };
+		}
+	}
+};
+
+/**
+ *
+ * @param {Server} io
+ * @param {{current: SpotifyApi | null}} sdk
+ * @param {Types.ApiOptions} opts
+ */
+const run = (io, sdk, opts = {}) => {
+	const options = {
+		...DEFAULT_OPTS,
+		...opts
+	};
+
+	const app = Router();
+
+	app.get(
+		'/artist/:id',
+		apiWrapper(async (req, res) => {
+			const response = await SpotifyInteract.artist.topTracks(req.sdk, req.params.id);
+			return res.json(response);
+		})
+	);
+
+	app.get(
+		'/album/:id',
+		apiWrapper(async (req, res) => {
+			const response = await SpotifyInteract.album.get(req.sdk, req.params.id);
+			return res.json(response);
+		})
+	);
+
+	app.get(
+		'/search',
+		apiWrapper(async (req, res) => {
+			// Special case for handling if someone has posted a Spotify URL into the search box
+			if (isSpotifyUrl(req.query.q)) {
+				const { type, id } = SpotifyUrl(req.query.q);
+
+				switch (type) {
+					case 'track': {
+						const response = await SpotifyInteract.track.get(req.sdk, id);
+						return res.json(response);
+					}
+					case 'artist': {
+						const response = await SpotifyInteract.artist.topTracks(req.sdk, id);
+						return res.json(response);
+					}
+					case 'album': {
+						const response = await SpotifyInteract.album.get(req.sdk, id);
+						return res.json(response);
+					}
+				}
+			}
+
+			const response = await SpotifyInteract.search.query(
+				req.sdk,
+				req.query.q,
+				options.market,
+				options.searchQueryLimit
+			);
+			return res.json(response);
+		})
+	);
+
+	app.get(
+		'/add',
+		apiWrapper(async (req, res) => {
+			const { success } = await SpotifyInteract.queue.add(req.sdk, req.query.uri);
+
+			if (!success) {
+				req.comms.error('Song already in queue');
+			} else {
+				req.comms.message(`Added <em>${req.query.name ?? 'a track'}</em>`, 'track');
+			}
+			events.system('add');
+
+			return res.json({ success });
+		})
+	);
+
+	app.get(
+		'/info',
+		apiWrapper(async (req, res) => {
+			const response = await SpotifyInteract.info.get(req.sdk, options.market);
+			return res.json(response);
+		})
+	);
+
+	app.get(
+		'/queue',
+		apiWrapper(async (req, res) => {
+			const response = await SpotifyInteract.queue.get(req.sdk);
+			return res.json(response);
 		})
 	);
 
 	app.get(
 		'/skipForward',
 		apiWrapper(async (req, res) => {
-			await req.sdk.player.skipToNext();
+			const response = await SpotifyInteract.player.forward(req.sdk);
 
 			req.comms.message('Skipped forward');
 			events.system('skippedForward');
 
-			return res.json({
-				success: true
-			});
+			return res.json(response);
 		})
 	);
 
 	app.get(
 		'/skipBackward',
 		apiWrapper(async (req, res) => {
-			await req.sdk.player.skipToPrevious();
+			const response = await SpotifyInteract.player.back(req.sdk);
 
 			req.comms.message('Skipped back');
 			events.system('skippedBackward');
 
-			return res.json({
-				success: true
-			});
+			return res.json(response);
 		})
 	);
 
 	app.get(
 		'/play',
 		apiWrapper(async (req, res) => {
-			await req.sdk.player.startResumePlayback();
+			const response = await SpotifyInteract.player.play(req.sdk);
 
 			req.comms.message('Pressed play');
 			events.system('play');
 
-			return res.json({
-				success: true
-			});
+			return res.json(response);
 		})
 	);
 
 	app.get(
 		'/pause',
 		apiWrapper(async (req, res) => {
-			await req.sdk.player.pausePlayback();
+			const response = await SpotifyInteract.player.pause(req.sdk);
 
 			req.comms.message('Pressed pause');
 			events.system('pause');
 
-			return res.json({
-				success: true
-			});
+			return res.json(response);
 		})
 	);
 
 	app.get('/health', (req, res) => res.json({ success: true, authenticated: !!req.sdk }));
+
+	if (options.centralisedPolling) {
+		asyncInterval(async () => {
+			console.log('Running centralised polling');
+			if (!sdk.current) {
+				return;
+			}
+
+			// If there are no clients, don't bother using an API call
+			if (io.engine.clientsCount > 0) {
+				const info = await SpotifyInteract.info.get(sdk.current);
+				io.emit('info', info);
+				console.log('Ran centralised polling');
+			}
+		}, options.centralisedPollingTimer);
+	}
 
 	return app;
 };

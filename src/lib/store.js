@@ -115,9 +115,10 @@ export const api = derived([address], ([$address]) => {
 		/**
 		 *
 		 * @param {string} uri
+		 * @param {string} [name]
 		 */
-		addTrack(uri) {
-			return f(`/add`, { uri });
+		addTrack(uri, name) {
+			return f(`/add`, { uri, name });
 		},
 
 		play() {

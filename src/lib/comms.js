@@ -9,7 +9,7 @@ const previous = {
 };
 
 export const socket = derived([address, settled], ([$address, $settled]) => {
-	if (!settled) {
+	if (!$settled) {
 		return null;
 	}
 

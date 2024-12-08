@@ -2,6 +2,8 @@
  * @typedef {object} ApiOptions
  * @property {import('@spotify/web-api-ts-sdk').Market} market If you want to change the market in which many operations happen in
  * @property {number} searchQueryLimit The max amount of tracks to return in any search request
+ * @property {boolean} centralisedPolling The server will poll for the spotify info, instead of all of the clients doing it, to reduce chance of rate limit
+ * @property {boolean} centralisedPollingTimer The interval for polling
  */
 
 /**
