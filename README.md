@@ -1,6 +1,10 @@
 # Spotify Party Display
 
+\* Will redo the README at some point \*
+
 An ambient display screen for spotify, with the ability to also non destructively add songs to the communal queue.
+
+![Screenshot](./screenshot.png?raw=true 'Screenshot of the player')
 
 ## Like a Spotify Jam?
 
