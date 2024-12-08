@@ -1,5 +1,6 @@
 import { derived, writable } from 'svelte/store';
 import { toastItems } from './toast';
+import * as Types from '$server/types.js';
 
 export const liveData = writable(false);
 export const authenticated = writable(false);
@@ -16,7 +17,7 @@ export const address = derived(
 
 		return {
 			full,
-			naked: [$siteUrl, $sitePort].join(';'),
+			naked: [$siteUrl, $sitePort].join(':'),
 
 			/**
 			 *
@@ -138,3 +139,6 @@ export const api = derived([address], ([$address]) => {
 		}
 	};
 });
+
+/** @type {import("svelte/store").Writable<Types.Config>}} */
+export const config = writable({});

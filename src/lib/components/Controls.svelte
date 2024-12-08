@@ -2,7 +2,7 @@
 	import { Pause, Play, PlaySkipBack, PlaySkipForward } from 'svelte-ionicons';
 	import { api } from '$lib/store';
 
-	const { playing = false, title, onTrigger = () => {} } = $props();
+	const { playing = false, title, onTrigger = () => {}, canControl = true } = $props();
 
 	/**
 	 * A variable to create the illusion of immediate feedback
@@ -45,23 +45,25 @@
 <div class="controls color-3">
 	<div class="controls-top ellipsis">{title}</div>
 
-	<div class="controls-actions">
-		<button onclick={onSkipBackward} class="btn-reset">
-			<PlaySkipBack />
-		</button>
-		{#if playDisplay === true}
-			<button onclick={onPause} class="btn-reset">
-				<Pause />
+	{#if canControl}
+		<div class="controls-actions">
+			<button onclick={onSkipBackward} class="btn-reset">
+				<PlaySkipBack />
 			</button>
-		{:else if playDisplay === false}
-			<button onclick={onPlay} class="btn-reset">
-				<Play />
+			{#if playDisplay === true}
+				<button onclick={onPause} class="btn-reset">
+					<Pause />
+				</button>
+			{:else if playDisplay === false}
+				<button onclick={onPlay} class="btn-reset">
+					<Play />
+				</button>
+			{/if}
+			<button onclick={onSkipForward} class="btn-reset">
+				<PlaySkipForward />
 			</button>
-		{/if}
-		<button onclick={onSkipForward} class="btn-reset">
-			<PlaySkipForward />
-		</button>
-	</div>
+		</div>
+	{/if}
 </div>
 
 <style lang="scss">

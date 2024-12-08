@@ -4,11 +4,10 @@
 	import MediaItem from '$lib/components/MediaItem.svelte';
 	import PlayingTracker from '$lib/components/PlayingTracker.svelte';
 	import ResultsList from '$lib/components/ResultsList.svelte';
-	import { api } from '$lib/store';
+	import { api, config } from '$lib/store';
 	import { toastItems } from '$lib/toast';
 	import * as Types from '$server/types';
-	import { timer } from '$lib/utils';
-	import { CaretBack } from 'svelte-ionicons';
+	import { CaretBack, Sparkles } from 'svelte-ionicons';
 
 	/** @type {Types.ApiSearchResponse | null}*/
 	let items = $state(null);
@@ -113,96 +112,104 @@
 		<Controls
 			playing={playing.isPlaying}
 			title={[playing.track.normalised.title, playing.track.normalised.subtitle].join(' - ')}
+			canControl={$config.api?.canControl}
 		/>
 	{/if}
 
-	<div class="page-content bg-color-3">
-		<form bind:this={searchForm} class="page-content-top" onsubmit={onSearch}>
-			<label>
-				<input
-					class="color-bg"
-					type="search"
-					placeholder="URL, Track, Album, Artist..."
-					name="q"
-					disabled={loading}
-				/>
-			</label>
-			<button class="btn-reset" disabled={loading}>Search</button>
-		</form>
+	{#if $config?.api?.canAdd}
+		<div class="page-content bg-color-3">
+			<form bind:this={searchForm} class="page-content-top" onsubmit={onSearch}>
+				<label>
+					<input
+						class="color-bg"
+						type="search"
+						placeholder="URL, Track, Album, Artist..."
+						name="q"
+						disabled={loading}
+					/>
+				</label>
+				<button class="btn-reset" disabled={loading}>Search</button>
+			</form>
 
-		<div class="page-content-results">
-			{#if loading}
-				<LoadingIndicator floating />
-			{/if}
+			<div class="page-content-results">
+				{#if loading}
+					<LoadingIndicator floating />
+				{/if}
 
-			{#if contextHeader}
-				<div class="context-header">
-					<button onclick={onSearch} class="context-header-action btn-reset">
-						<CaretBack size="28" />
-					</button>
+				{#if contextHeader}
+					<div class="context-header">
+						<button onclick={onSearch} class="context-header-action btn-reset">
+							<CaretBack size="28" />
+						</button>
 
-					<div class="context-header-item">
-						<MediaItem {...contextHeader} />
+						<div class="context-header-item">
+							<MediaItem {...contextHeader} />
+						</div>
 					</div>
-				</div>
-			{/if}
+				{/if}
 
-			{#if items?.tracks}
-				<ResultsList
-					title="Tracks"
-					onActivate={() => (expanded = 'tracks')}
-					expanded={expanded === 'tracks'}
-					items={items.tracks}
-				>
-					{#snippet action(item)}
-						<button
-							disabled={loading}
-							onclick={() => addTrack(item.uri, item.title)}
-							class="btn-reset select-track size-small-1">Add Track</button
-						>
-					{/snippet}
-				</ResultsList>
-			{/if}
+				{#if items?.tracks}
+					<ResultsList
+						title="Tracks"
+						onActivate={() => (expanded = 'tracks')}
+						expanded={expanded === 'tracks'}
+						items={items.tracks}
+					>
+						{#snippet action(item)}
+							<button
+								disabled={loading}
+								onclick={() => addTrack(item.uri, item.title)}
+								class="btn-reset select-track size-small-1">Add Track</button
+							>
+						{/snippet}
+					</ResultsList>
+				{/if}
 
-			{#if items?.albums}
-				<ResultsList
-					title="Albums"
-					onActivate={() => (expanded = 'albums')}
-					expanded={expanded === 'albums'}
-					items={items.albums}
-				>
-					{#snippet action(item)}
-						<button
-							onclick={() => searchAlbum(item)}
-							disabled={loading}
-							class="btn-reset select-track size-small-1">View Album</button
-						>
-					{/snippet}
-				</ResultsList>
-			{/if}
+				{#if items?.albums}
+					<ResultsList
+						title="Albums"
+						onActivate={() => (expanded = 'albums')}
+						expanded={expanded === 'albums'}
+						items={items.albums}
+					>
+						{#snippet action(item)}
+							<button
+								onclick={() => searchAlbum(item)}
+								disabled={loading}
+								class="btn-reset select-track size-small-1">View Album</button
+							>
+						{/snippet}
+					</ResultsList>
+				{/if}
 
-			{#if items?.artists}
-				<ResultsList
-					title="Artists"
-					onActivate={() => (expanded = 'artists')}
-					expanded={expanded === 'artists'}
-					items={items.artists}
-				>
-					{#snippet action(item)}
-						<button
-							onclick={() => searchArtist(item)}
-							disabled={loading}
-							class="btn-reset select-track size-small-1">View Artist</button
-						>
-					{/snippet}
-				</ResultsList>
-			{/if}
+				{#if items?.artists}
+					<ResultsList
+						title="Artists"
+						onActivate={() => (expanded = 'artists')}
+						expanded={expanded === 'artists'}
+						items={items.artists}
+					>
+						{#snippet action(item)}
+							<button
+								onclick={() => searchArtist(item)}
+								disabled={loading}
+								class="btn-reset select-track size-small-1">View Artist</button
+							>
+						{/snippet}
+					</ResultsList>
+				{/if}
 
-			{#if !items}
-				<div class="initial color-1">Search for a track to add</div>
-			{/if}
+				{#if !items}
+					<div class="initial color-1">Search for a track to add</div>
+				{/if}
+			</div>
 		</div>
-	</div>
+	{:else}
+		<div class="warning">
+			<Sparkles />
+			<p>Host has disabled adding for this party</p>
+		</div>
+	{/if}
 </div>
 
 <style lang="scss">
@@ -342,5 +349,18 @@
 		&-item {
 			padding: var(--spacing-small);
 		}
+	}
+
+	.warning {
+		border-radius: var(--border-radius-large);
+		background-color: var(--color-1);
+		color: var(--color-2);
+
+		padding: var(--spacing-large);
+
+		display: flex;
+
+		flex-direction: column;
+		align-items: center;
 	}
 </style>

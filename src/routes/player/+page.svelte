@@ -1,6 +1,6 @@
 <script>
 	import { qr } from '$lib/actions/qr.svelte';
-	import { address, api } from '$lib/store';
+	import { address, api, config } from '$lib/store';
 	import { fade } from 'svelte/transition';
 	import ImageLoad from '$lib/components/ImageLoad.svelte';
 	import PlayingTracker from '$lib/components/PlayingTracker.svelte';
@@ -11,6 +11,26 @@
 	 * @type {Types.ApiInfoResponse | null | {noTrack: boolean}}
 	 */
 	let playing = $state(null);
+
+	let title = $derived.by(() => {
+		if (!playing || 'noTrack' in playing) {
+			return '';
+		}
+
+		if ('normalised' in playing.context) {
+			return playing.context.normalised.title;
+		}
+
+		if ('album' in playing.track) {
+			return playing.track.album;
+		}
+
+		if ('show' in playing.track) {
+			return playing.track.show;
+		}
+
+		return '';
+	});
 
 	let subtitle = $derived.by(() => {
 		if (!playing || 'noTrack' in playing) {
@@ -40,7 +60,7 @@
 	<div class="page bg-color-bg">
 		<div class="top">
 			<div class="context color-1">
-				<span>{playing?.context?.normalised?.title ?? playing?.track?.title}</span>
+				<span>{title}</span>
 				<span class="size-small-2">{subtitle}</span>
 			</div>
 		</div>
@@ -65,11 +85,13 @@
 			</div>
 
 			<div class="right">
-				<div class="badge bg-color-3 color-bg">
-					<span class="headline-3">Add</span>
+				{#if $config.api?.canAdd}
+					<div class="badge bg-color-3 color-bg">
+						<span class="headline-3">Add</span>
 
-					<span class="badge-qr" use:qr={{ url: $address.get('/') }}></span>
-				</div>
+						<span class="badge-qr" use:qr={{ url: $address.get('/') }}></span>
+					</div>
+				{/if}
 
 				<span class="size-small-1 color-3">{$address.naked}</span>
 			</div>
@@ -201,6 +223,7 @@
 
 			flex-direction: column;
 			align-items: flex-end;
+			align-self: flex-end;
 
 			gap: var(--spacing-small);
 		}

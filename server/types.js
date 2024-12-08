@@ -3,7 +3,9 @@
  * @property {import('@spotify/web-api-ts-sdk').Market} market If you want to change the market in which many operations happen in
  * @property {number} searchQueryLimit The max amount of tracks to return in any search request
  * @property {boolean} centralisedPolling The server will poll for the spotify info, instead of all of the clients doing it, to reduce chance of rate limit
- * @property {boolean} centralisedPollingTimer The interval for polling
+ * @property {number} centralisedPollingTimer The interval for polling
+ * @property {boolean} canAdd Can add to the queue
+ * @property {boolean} canControl Can control the playback
  */
 
 /**
@@ -37,8 +39,16 @@
 /**
  * @typedef {object} SpotifyAmbientDisplayOptions
  * @property {number} port
+ * @property {boolean} verbose
  * @property {ApiOptions} api
  * @property {SpotifyOptions} spotify
+ */
+
+/**
+ * @typedef {object} Config
+ * @property {number} [port]
+ * @property {Partial<ApiOptions>} [api]
+ * @property {Partial<SpotifyOptions>} [spotify]
  */
 
 /**

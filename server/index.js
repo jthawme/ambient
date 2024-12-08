@@ -7,16 +7,17 @@ import { createServer } from 'node:http';
 import { Server } from 'socket.io';
 import deepmerge from 'deepmerge';
 
-import ApiRoutes from './api.js';
-import SpotifyRoutes from './spotify.js';
-import { ERROR, EVENT } from './constants.js';
+import { ERROR, EVENT, DEFAULT_OPTIONS } from './constants.js';
 import * as Types from './types.js';
 import { events } from './events.js';
 import { comms } from './comms.js';
 
+import ApiRoutes from './api/index.js';
+import SpotifyRoutes from './spotify/index.js';
+
 dotenv.config();
 
-const DEFAULT_OPTIONS = {
+const INJECTED_OPTIONS = {
 	port: process.env.PORT ?? 3000,
 	spotify: {
 		client_id: process.env.SPOTIFY_CLIENT_ID,
@@ -25,11 +26,11 @@ const DEFAULT_OPTIONS = {
 };
 
 /** @type {Partial<Types.SpotifyAmbientDisplayOptions>} */
-const USER_OPTIONS = await import('../display.config.js')
+const USER_OPTIONS = await import('../party.config.js')
 	.then((module) => module.default)
 	.catch(() => {});
 
-const OPTIONS = deepmerge(DEFAULT_OPTIONS, USER_OPTIONS);
+const OPTIONS = deepmerge(INJECTED_OPTIONS, deepmerge(DEFAULT_OPTIONS, USER_OPTIONS));
 
 const app = express();
 const server = createServer(app);
