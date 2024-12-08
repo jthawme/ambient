@@ -1,4 +1,4 @@
-import * as Types from './types.js';
+import * as Types from './types/options.js';
 
 export const ERROR = {
 	GENERAL: 'api/general',
@@ -14,8 +14,12 @@ export const EVENT = {
 /** @type {Types.SpotifyAmbientDisplayOptions} */
 export const DEFAULT_OPTIONS = {
 	port: 3000,
+	origin: '',
+	protocol: 'http://',
 
 	verbose: false,
+
+	playerRoute: '/player',
 
 	api: {
 		market: 'GB',
@@ -29,11 +33,12 @@ export const DEFAULT_OPTIONS = {
 	spotify: {
 		client_id: '',
 		client_secret: '',
-		origin: 'http://localhost',
 		routePrefix: '/spotify',
 		routeToken: '/token',
-		authenticatedRedirect: '/player',
+		authenticatedRedirect: '/',
 		accessTokenJsonLocation: './server/spotify_auth.json',
 		scope: []
-	}
+	},
+
+	pluginOptions: {}
 };

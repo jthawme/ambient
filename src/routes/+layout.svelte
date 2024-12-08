@@ -1,7 +1,7 @@
 <script>
 	import 'normalize.css';
 	import '$lib/styles.scss';
-	import { api, authenticated, config, liveData, settled, sitePort, siteUrl } from '$lib/store';
+	import { api, authenticated, config, liveData, settled } from '$lib/store';
 	import { socket } from '$lib/comms';
 
 	import AuthenticateTrigger from '$lib/components/AuthenticateTrigger.svelte';
@@ -25,13 +25,14 @@
 		$socket?.on('message', (item) => {
 			toastItems.addItem(item);
 		});
+		$socket?.on('reload', (item) => {
+			window.location.reload();
+		});
 	});
 
 	$effect(() => {
 		config.set(data.config);
-		siteUrl.set(data.url ?? '');
 		liveData.set(data.live);
-		sitePort.set(data.port);
 		settled.set(true);
 
 		determineAppState();

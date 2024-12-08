@@ -6,25 +6,25 @@
 	import ResultsList from '$lib/components/ResultsList.svelte';
 	import { api, config } from '$lib/store';
 	import { toastItems } from '$lib/toast';
-	import * as Types from '$server/types';
+	import * as DataTypes from '$server/types/data.js';
 	import { CaretBack, Sparkles } from 'svelte-ionicons';
 
-	/** @type {Types.ApiSearchResponse | null}*/
+	/** @type {DataTypes.ApiSearchResponse | null}*/
 	let items = $state(null);
 	let loading = $state(false);
 
 	/** @type {'tracks' | 'artists' | 'albums'}*/
 	let expanded = $state('tracks');
 
-	/** @type {Types.ApiNormalisedItem | null} */
+	/** @type {DataTypes.ApiNormalisedItem | null} */
 	let contextHeader = $state(null);
 
-	/** @type {Types.ApiInfoResponse | null} */
+	/** @type {DataTypes.ApiInfoResponse | null} */
 	let playing = $state(null);
 
 	/**
 	 *
-	 * @param {() => Promise<Types.ApiSearchResponse>} requestPromise
+	 * @param {() => Promise<DataTypes.ApiSearchResponse>} requestPromise
 	 */
 	async function onRequest(requestPromise) {
 		try {
@@ -86,7 +86,7 @@
 
 	/**
 	 *
-	 * @param {Types.ApiNormalisedItem} item
+	 * @param {DataTypes.ApiNormalisedItem} item
 	 */
 	async function searchAlbum(item) {
 		contextHeader = item;
@@ -96,7 +96,7 @@
 
 	/**
 	 *
-	 * @param {Types.ApiNormalisedItem} item
+	 * @param {DataTypes.ApiNormalisedItem} item
 	 */
 	async function searchArtist(item) {
 		contextHeader = item;
@@ -210,6 +210,10 @@
 			<p>Host has disabled adding for this party</p>
 		</div>
 	{/if}
+
+	<div class="outlink size-small-2 color-2">
+		<a href="/player">View player</a>
+	</div>
 </div>
 
 <style lang="scss">
@@ -362,5 +366,16 @@
 
 		flex-direction: column;
 		align-items: center;
+	}
+	.outlink {
+		a {
+			color: var(--color-2);
+			text-decoration: none;
+
+			&:hover,
+			&:focus-visible {
+				color: var(--color-highlight);
+			}
+		}
 	}
 </style>

@@ -1,12 +1,17 @@
 import { derived, writable } from 'svelte/store';
 import { toastItems } from './toast';
-import * as Types from '$server/types.js';
+import * as OptionsTypes from '$server/types/options';
 
 export const liveData = writable(false);
 export const authenticated = writable(false);
-export const siteUrl = writable('');
-export const sitePort = writable('');
 export const settled = writable(false);
+
+/** @type {import("svelte/store").Writable<OptionsTypes.Config>}} */
+export const config = writable({});
+export const siteUrl = derived([config], ([$config]) =>
+	[$config?.protocol, $config?.origin].join('')
+);
+export const sitePort = derived([config], ([$config]) => $config.protocol);
 
 const objectHasValues = (obj) => Object.values(obj).length > 0;
 
@@ -28,7 +33,7 @@ export const address = derived(
 				return `${full}${route}`;
 			},
 
-			endpoint: $liveData || !$siteUrl ? '' : `http://${$siteUrl}:3000`,
+			endpoint: $liveData || !$siteUrl ? '' : `${$siteUrl}:3000`,
 
 			/**
 			 *
@@ -139,6 +144,3 @@ export const api = derived([address], ([$address]) => {
 		}
 	};
 });
-
-/** @type {import("svelte/store").Writable<Types.Config>}} */
-export const config = writable({});

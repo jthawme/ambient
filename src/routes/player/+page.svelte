@@ -5,10 +5,10 @@
 	import ImageLoad from '$lib/components/ImageLoad.svelte';
 	import PlayingTracker from '$lib/components/PlayingTracker.svelte';
 	import LoadingIndicator from '$lib/components/LoadingIndicator.svelte';
-	import * as Types from '$server/types.js';
+	import * as DataTypes from '$server/types/data.js';
 
 	/**
-	 * @type {Types.ApiInfoResponse | null | {noTrack: boolean}}
+	 * @type {DataTypes.ApiInfoResponse | null | {noTrack: boolean}}
 	 */
 	let playing = $state(null);
 
@@ -55,7 +55,7 @@
 {#if !playing}
 	<LoadingIndicator floating />
 {:else if 'noTrack' in playing}
-	No Track playing currently
+	<div class="empty bg-color-3 color-1">No Track playing currently</div>
 {:else}
 	<div class="page bg-color-bg">
 		<div class="top">
@@ -227,5 +227,19 @@
 
 			gap: var(--spacing-small);
 		}
+	}
+
+	.empty {
+		position: absolute;
+
+		top: 50%;
+		left: 50%;
+
+		transform: translate3d(-50%, -50%, 0);
+
+		padding: var(--spacing-normal);
+		border-radius: var(--border-radius-normal);
+
+		white-space: nowrap;
 	}
 </style>

@@ -1,7 +1,7 @@
 import EventEmitter from 'node:events';
 import { EVENT } from './constants.js';
 
-class AppEventEmitter extends EventEmitter {
+export class AppEventEmitter extends EventEmitter {
 	constructor() {
 		super();
 	}
@@ -20,12 +20,22 @@ class AppEventEmitter extends EventEmitter {
 		});
 	}
 
+	/**
+	 *
+	 * @param {string} message
+	 * @param {any} detail
+	 */
 	error(message, detail = null) {
 		this.emit(EVENT.APP_ERROR, message, detail);
 	}
 
-	system(event) {
-		this.emit([EVENT.SYSTEM, event].join(':'));
+	/**
+	 *
+	 * @param {string} event
+	 * @param {string} message
+	 */
+	system(event, message = '') {
+		this.emit([EVENT.SYSTEM, event].join(':'), message);
 	}
 }
 

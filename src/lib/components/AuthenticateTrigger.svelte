@@ -15,6 +15,12 @@
 		<div class="options-right">
 			<span class="qr" use:qr={{ url: $address.server('/spotify/start') }}></span>
 		</div>
+		<div class="options-bottom">
+			<p class="size-small-1 color-2">
+				Make sure that <em>{$address.server('/spotify/token')}</em> is added as a Redirect URI in your
+				spotify app dashboard
+			</p>
+		</div>
 	</div>
 </div>
 
@@ -51,5 +57,18 @@
 
 		grid-template-columns: 1fr 100px;
 		gap: var(--spacing-normal);
+
+		&-bottom {
+			grid-column: 1 / -1;
+
+			p {
+				margin: 0;
+
+				em {
+					color: vaR(--color-1);
+					font-style: normal;
+				}
+			}
+		}
 	}
 </style>

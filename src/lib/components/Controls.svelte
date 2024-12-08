@@ -42,7 +42,7 @@
 	});
 </script>
 
-<div class="controls color-3">
+<div class="controls color-1">
 	<div class="controls-top ellipsis">{title}</div>
 
 	{#if canControl}

@@ -1,14 +1,14 @@
 <script>
 	import MediaItem from './MediaItem.svelte';
-	import * as Types from '$server/types';
+	import * as DataTypes from '$server/types/data.js';
 
 	/**
 	 * @typedef {object} ResultsListProps
 	 * @property {boolean} [expanded]
 	 * @property {() => void} onActivate
-	 * @property {Types.ApiTrack[]} items
+	 * @property {DataTypes.ApiTrack[]} items
 	 * @property {string} title
-	 * @property {import('svelte').Snippet<[Types.ApiNormalisedItem]>} action
+	 * @property {import('svelte').Snippet<[DataTypes.ApiNormalisedItem]>} action
 	 */
 
 	/** @type {ResultsListProps} */

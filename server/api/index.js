@@ -2,7 +2,7 @@ import { SpotifyApi } from '@spotify/web-api-ts-sdk';
 import { Router } from 'express';
 import { Server } from 'socket.io';
 
-import * as Types from '../types.js';
+import * as Types from '../types/options.js';
 import { events } from '../events.js';
 import { asyncInterval } from '../utils.js';
 import { DEFAULT_OPTIONS } from '../constants.js';
@@ -182,8 +182,8 @@ const run = (io, sdk, opts = {}, verbose = false) => {
 				return;
 			}
 
-			// If there are no clients, don't bother using an API call
-			if (io.engine.clientsCount > 0) {
+			// If there are no clients, don't bother using an API call - or just once if there is no cached info
+			if (io.engine.clientsCount > 0 || !cachedInfo.current) {
 				const info = await SpotifyInteract.info.get(sdk.current);
 				io.emit('info', info);
 

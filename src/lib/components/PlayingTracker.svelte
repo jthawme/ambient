@@ -2,7 +2,7 @@
 	import { socket } from '$lib/comms';
 	import { api } from '$lib/store';
 	import Vibrant from 'node-vibrant';
-	import * as Types from '$server/types.js';
+	import * as DataTypes from '$server/types/data.js';
 
 	let {
 		playing = $bindable(null),
@@ -46,7 +46,7 @@
 
 	/**
 	 *
-	 * @param {Types.ApiInfoResponse} newData
+	 * @param {DataTypes.ApiInfoResponse} newData
 	 */
 	async function update(newData) {
 		if (newData?.track?.uri !== playing?.track?.uri) {

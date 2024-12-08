@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 
-import * as Types from '../types.js';
+import * as Types from '../types/index.js';
+import * as OptionsTypes from '../types/options.js';
 
 export const SpotifyAuth = {
 	token: {
@@ -54,7 +55,7 @@ export const SpotifyAuth = {
 
 /**
  *
- * @param {import('./types.js').SpotifyOptions} options
+ * @param {OptionsTypes.SpotifyOptions} options
  * @returns {Promise<Types.SpotifyAccessToken | false>}
  */
 export async function initialisePreviousAuth({

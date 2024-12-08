@@ -1,36 +1,21 @@
 import { SpotifyApi } from '@spotify/web-api-ts-sdk';
-import dotenv from 'dotenv';
+
 import express from 'express';
-import ip from 'ip';
 import cors from 'cors';
 import { createServer } from 'node:http';
 import { Server } from 'socket.io';
-import deepmerge from 'deepmerge';
 
-import { ERROR, EVENT, DEFAULT_OPTIONS } from './constants.js';
-import * as Types from './types.js';
+import { ERROR, EVENT } from './constants.js';
+import * as Types from './types/options.js';
 import { events } from './events.js';
 import { comms } from './comms.js';
 
 import ApiRoutes from './api/index.js';
 import SpotifyRoutes from './spotify/index.js';
+import { SpotifyInteract } from './api/interact.js';
+import { OPTIONS } from './config.js';
 
-dotenv.config();
-
-const INJECTED_OPTIONS = {
-	port: process.env.PORT ?? 3000,
-	spotify: {
-		client_id: process.env.SPOTIFY_CLIENT_ID,
-		client_secret: process.env.SPOTIFY_CLIENT_SECRET
-	}
-};
-
-/** @type {Partial<Types.SpotifyAmbientDisplayOptions>} */
-const USER_OPTIONS = await import('../party.config.js')
-	.then((module) => module.default)
-	.catch(() => {});
-
-const OPTIONS = deepmerge(INJECTED_OPTIONS, deepmerge(DEFAULT_OPTIONS, USER_OPTIONS));
+const URL = `${OPTIONS.origin}:${OPTIONS.port}`;
 
 const app = express();
 const server = createServer(app);
@@ -51,6 +36,30 @@ const sdk = {
 	/** @type {SpotifyApi | null} */
 	current: null
 };
+
+const { plugins, ...config } = OPTIONS;
+const inject = {
+	io,
+	comms: commsObject,
+	server: app,
+	events,
+	sdk,
+	spotify: SpotifyInteract,
+	config,
+	info: {
+		url: URL,
+		player: [URL, OPTIONS.playerRoute].join('')
+	}
+};
+
+OPTIONS.plugins
+	.filter((plugin) => {
+		if (plugin.skip && OPTIONS.verbose) {
+			console.log(`Skipping plugin: ${plugin.name ?? 'Unnamed'}`);
+		}
+		return !plugin.skip;
+	})
+	.forEach((plugin) => plugin.handler(inject));
 
 /**
  * Middleware which attachs the spotify intance and the socket io instance
@@ -82,7 +91,7 @@ const sdkProtect = (req, res, next) => {
 };
 
 // Mount the spotify sub app
-const spotify = await SpotifyRoutes(sdk, { ...(OPTIONS.spotify ?? {}), port: OPTIONS.port });
+const spotify = await SpotifyRoutes(sdk, OPTIONS);
 app.use('/spotify', spotify);
 
 // Mount the api sub app
@@ -90,9 +99,7 @@ app.use('/api', sdkProtect, ApiRoutes(io, sdk, OPTIONS.api ?? {}));
 
 // If the app is running in development mode, catch the player redirect and redirect to the sveltekit route instead
 if (process.env.NODE_ENV === 'development') {
-	app.get(USER_OPTIONS.spotify?.authenticatedRedirect ?? '/player', (req, res) =>
-		res.redirect('http://localhost:5173/player')
-	);
+	app.get(OPTIONS.playerRoute, (req, res) => res.redirect('http://localhost:5173/player'));
 } else {
 	// If its production mount the built sveltekit app
 	const { handler } = await import('../build/handler.js');
@@ -112,8 +119,12 @@ events.on(EVENT.APP_ERROR, ({ message }) => {
 	commsObject.error(message);
 });
 
+events.on(`system:authenticated`, () => {
+	io.emit('reload');
+});
+
 server.listen(OPTIONS.port, () => {
-	console.log(`App running on port http://${ip.address()}:${OPTIONS.port}`);
+	console.log(`App running on port ${URL}`);
 
 	events.system('start');
 });
