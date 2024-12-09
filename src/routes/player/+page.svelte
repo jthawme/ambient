@@ -71,8 +71,31 @@
 		}
 	}
 
+	let idle = $state(true);
+	function mouseIdle() {
+		let timerId = 0;
+		const unlisten = listenCb(document, 'mousemove', () => {
+			clearTimeout(timerId);
+			idle = false;
+
+			timerId = window.setTimeout(() => {
+				idle = true;
+			}, 2000);
+		});
+
+		return () => {
+			unlisten();
+			clearTimeout(timerId);
+		};
+	}
+
+	$effect(() => {
+		document.documentElement.classList.toggle('idle', idle);
+	});
+
 	$effect(() => {
 		keepScreenAwake();
+		mouseIdle();
 	});
 </script>
 
@@ -83,7 +106,7 @@
 {:else if 'noTrack' in playing}
 	<div class="empty bg-color-3 color-1">No Track playing currently</div>
 {:else}
-	<div class="page bg-color-bg">
+	<div class="page bg-color-bg" class:idle>
 		<div class="top">
 			<div class="context color-1">
 				<span>{title}</span>
