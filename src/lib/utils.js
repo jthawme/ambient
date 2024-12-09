@@ -254,7 +254,7 @@ export const breakpointListen = (query, cb) => {
  * @param {string} evt
  * @param {function} cb
  * @param {object} opts
- * @returns {function} Unlisten
+ * @returns {() => void)} Unlisten
  */
 export const listenCb = (el, evt, cb, opts = false) => {
 	el.addEventListener(evt, cb, opts);

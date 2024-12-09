@@ -6,6 +6,7 @@
 	import PlayingTracker from '$lib/components/PlayingTracker.svelte';
 	import LoadingIndicator from '$lib/components/LoadingIndicator.svelte';
 	import * as DataTypes from '$server/types/data.js';
+	import { listenCb } from '$lib/utils';
 
 	/**
 	 * @type {DataTypes.ApiInfoResponse | null | {noTrack: boolean}}
@@ -47,6 +48,31 @@
 			default:
 				return playing?.context?.normalised?.subtitle ?? '';
 		}
+	});
+
+	/** @type {null | (() => void)} */
+	let focusEvt = null;
+	async function keepScreenAwake() {
+		let wakeLock = null;
+
+		try {
+			focusEvt?.();
+			focusEvt = null;
+			wakeLock = await navigator.wakeLock.request('screen');
+			console.log('Screen locked');
+			return () => {};
+		} catch (err) {
+			if (err.code === 0 && !focusEvt) {
+				focusEvt = listenCb(window, 'focus', keepScreenAwake);
+				return focusEvt;
+			} else {
+				console.log(err);
+			}
+		}
+	}
+
+	$effect(() => {
+		keepScreenAwake();
 	});
 </script>
 
