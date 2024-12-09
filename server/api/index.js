@@ -5,7 +5,8 @@ import { Server } from 'socket.io';
 import * as Types from '../types/options.js';
 import { events } from '../events.js';
 import { asyncInterval } from '../utils.js';
-import { DEFAULT_OPTIONS } from '../constants.js';
+import { log } from '../logs.js';
+import { DEFAULT_OPTIONS, EVENT } from '../constants.js';
 import { apiWrapper, isSpotifyUrl, SpotifyUrl, protect } from './utils.js';
 import { SpotifyInteract } from './interact.js';
 
@@ -174,24 +175,33 @@ const run = (io, sdk, opts = {}, verbose = false) => {
 		});
 
 		asyncInterval(async () => {
-			if (verbose) {
-				console.log('Running centralised polling');
-			}
+			try {
+				if (verbose) {
+					console.log('Running centralised polling');
+				}
 
-			if (!sdk.current) {
-				return;
-			}
+				if (!sdk.current) {
+					return;
+				}
 
-			// If there are no clients, don't bother using an API call - or just once if there is no cached info
-			if (io.engine.clientsCount > 0 || !cachedInfo.current) {
-				const info = await SpotifyInteract.info.get(sdk.current);
-				io.emit('info', info);
+				// If there are no clients, don't bother using an API call - or just once if there is no cached info
+				if (io.engine.clientsCount > 0 || !cachedInfo.current) {
+					const info = await SpotifyInteract.info.get(sdk.current);
+					io.emit('info', info);
 
-				// Allows us to pass to new sockets immediately
-				cachedInfo.current = info;
+					// Allows us to pass to new sockets immediately
+					cachedInfo.current = info;
+
+					if (verbose) {
+						console.log('Ran centralised polling');
+					}
+				}
+			} catch (e) {
+				events.error(EVENT.APP_ERROR, e);
+				log.error(e);
 
 				if (verbose) {
-					console.log('Ran centralised polling');
+					console.log('Error on polling');
 				}
 			}
 		}, options.centralisedPollingTimer);
