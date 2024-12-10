@@ -29,6 +29,7 @@ const run = async (sdk, options) => {
 		sdk.current = await persistSdk(
 			options.spotify.accessTokenJsonLocation,
 			options.spotify.client_id,
+			options.spotify.client_secret,
 			refreshedAuth
 		);
 	}
@@ -97,7 +98,7 @@ const run = async (sdk, options) => {
 		);
 		sdk.current = await persistSdk(
 			options.spotify.accessTokenJsonLocation,
-			options.spotify.client_id,
+			options.spotify.client_secret,
 			accessTokenJson
 		);
 

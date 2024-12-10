@@ -24,7 +24,7 @@ export const trim = {
 	/**
 	 *
 	 * @param {import('@spotify/web-api-ts-sdk').Track} track
-	 * @returns {Types.ApiTrackItem}
+	 * @returns {Types.ApiTrackItem & Types.ApiNormalisedItem}
 	 */
 	track(track) {
 		return {
@@ -51,7 +51,7 @@ export const trim = {
 	/**
 	 *
 	 * @param {import('@spotify/web-api-ts-sdk').Playlist} playlist
-	 * @returns {Types.ApiPlaylistItem}
+	 * @returns {Types.ApiPlaylistItem & Types.ApiNormalisedItem}
 	 */
 	playlist(playlist) {
 		return {
@@ -76,7 +76,7 @@ export const trim = {
 	/**
 	 *
 	 * @param {import('@spotify/web-api-ts-sdk').Artist} artist
-	 * @returns {Types.ApiArtistItem}
+	 * @returns {Types.ApiArtistItem & Types.ApiNormalisedItem}
 	 */
 	artist(artist) {
 		return {
@@ -93,14 +93,14 @@ export const trim = {
 	/**
 	 *
 	 * @param {import('@spotify/web-api-ts-sdk').Album} album
-	 * @returns {Types.ApiAlbumItem}
+	 * @returns {Types.ApiAlbumItem & Types.ApiNormalisedItem}
 	 */
 	album(album) {
 		return {
 			normalised: normalisedData(
 				album.id,
 				album.name,
-				album.release_date.split('-').shift(),
+				album.release_date.split('-').shift() ?? '',
 				album.uri,
 				album.images
 			),
@@ -118,7 +118,7 @@ export const trim = {
 	/**
 	 *
 	 * @param {import('@spotify/web-api-ts-sdk').Episode} episode
-	 * @returns {Types.ApiEpisodeItem}
+	 * @returns {Types.ApiEpisodeItem & Types.ApiNormalisedItem}
 	 */
 	episode(episode) {
 		return {
@@ -143,7 +143,7 @@ export const trim = {
 	/**
 	 *
 	 * @param {import('@spotify/web-api-ts-sdk').Show} show
-	 * @returns {Types.ApiShowItem}
+	 * @returns {Types.ApiShowItem & Types.ApiNormalisedItem}
 	 */
 	show(show) {
 		return {
@@ -174,7 +174,7 @@ export const deconstructUri = (uri) => {
 
 /**
  *
- * @param {SpotifyApi} sdk
+ * @param {import('@spotify/web-api-ts-sdk').SpotifyApi} sdk
  * @param {string} uri
  * @return {Promise<Types.ApiContext | {}>}
  */
@@ -226,14 +226,14 @@ export const getContext = async (sdk, uri) => {
 
 /**
  *
- * @param {(req: import('express').Request & {sdk: SpotifyApi}, res: import('express').Response, next: import('express').NextFunction)} handler
+ * @param {(req: import('express').Request & {sdk: import('@spotify/web-api-ts-sdk').SpotifyApi}, res: import('express').Response, next?: import('express').NextFunction)} handler
  * @returns
  */
 export function apiWrapper(handler) {
 	return async (
-		/** @type {import('express').Request & {sdk: SpotifyApi}} */ req,
+		/** @type {import('express').Request & {sdk: import('@spotify/web-api-ts-sdk').SpotifyApi}} */ req,
 		/** @type {import('express').Response} */ res,
-		next
+		/** @type {import('express').NextFunction} */ next
 	) => {
 		try {
 			await handler(req, res);

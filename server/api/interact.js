@@ -6,13 +6,14 @@ export const SpotifyInteract = {
 	artist: {
 		/**
 		 *
-		 * @param {SpotifyApi} sdk
+		 * @param {import('@spotify/web-api-ts-sdk').SpotifyApi} sdk
 		 * @param {string} id
+		 * @param {import('@spotify/web-api-ts-sdk').Market} market
 		 */
-		async topTracks(sdk, id) {
+		async topTracks(sdk, id, market = 'GB') {
 			/** @type {import('@spotify/web-api-ts-sdk').TopTracksResult} */
 			const results = await memo.use(memo.key('artist', 'tracks', id), () =>
-				sdk.artists.topTracks(id)
+				sdk.artists.topTracks(id, market)
 			);
 
 			return {
@@ -24,7 +25,7 @@ export const SpotifyInteract = {
 	album: {
 		/**
 		 *
-		 * @param {SpotifyApi} sdk
+		 * @param {import('@spotify/web-api-ts-sdk').SpotifyApi} sdk
 		 * @param {string} id
 		 */
 		async get(sdk, id) {
@@ -45,7 +46,7 @@ export const SpotifyInteract = {
 	track: {
 		/**
 		 *
-		 * @param {SpotifyApi} sdk
+		 * @param {import('@spotify/web-api-ts-sdk').SpotifyApi} sdk
 		 * @param {string} id
 		 */
 		async get(sdk, id) {
@@ -61,7 +62,7 @@ export const SpotifyInteract = {
 	queue: {
 		/**
 		 *
-		 * @param {SpotifyApi} sdk
+		 * @param {import('@spotify/web-api-ts-sdk').SpotifyApi} sdk
 		 */
 		async get(sdk) {
 			const queue = await sdk.player.getUsersQueue();
@@ -89,7 +90,7 @@ export const SpotifyInteract = {
 
 		/**
 		 *
-		 * @param {SpotifyApi} sdk
+		 * @param {import('@spotify/web-api-ts-sdk').SpotifyApi} sdk
 		 * @param {string} uri
 		 */
 		async add(sdk, uri) {
@@ -113,7 +114,7 @@ export const SpotifyInteract = {
 	search: {
 		/**
 		 *
-		 * @param {SpotifyApi} sdk
+		 * @param {import('@spotify/web-api-ts-sdk').SpotifyApi} sdk
 		 * @param {string} q
 		 * @param {import('@spotify/web-api-ts-sdk').Market} q
 		 * @param {number} q
@@ -139,7 +140,7 @@ export const SpotifyInteract = {
 	context: {
 		/**
 		 *
-		 * @param {SpotifyApi} sdk
+		 * @param {import('@spotify/web-api-ts-sdk').SpotifyApi} sdk
 		 */
 		async get(sdk, uri) {
 			/** @type {Types.ApiContext | {}} */
@@ -152,7 +153,7 @@ export const SpotifyInteract = {
 	info: {
 		/**
 		 *
-		 * @param {SpotifyApi} sdk
+		 * @param {import('@spotify/web-api-ts-sdk').SpotifyApi} sdk
 		 * @param {import('@spotify/web-api-ts-sdk').Market} [market]
 		 */
 		async get(sdk, market = DEFAULT_OPTIONS.api.market) {
@@ -184,7 +185,7 @@ export const SpotifyInteract = {
 	player: {
 		/**
 		 *
-		 * @param {SpotifyApi} sdk
+		 * @param {import('@spotify/web-api-ts-sdk').SpotifyApi} sdk
 		 */
 		async play(sdk) {
 			await sdk.player.startResumePlayback();
@@ -193,7 +194,7 @@ export const SpotifyInteract = {
 		},
 		/**
 		 *
-		 * @param {SpotifyApi} sdk
+		 * @param {import('@spotify/web-api-ts-sdk').SpotifyApi} sdk
 		 */
 		async pause(sdk) {
 			await sdk.player.pausePlayback();
@@ -202,7 +203,7 @@ export const SpotifyInteract = {
 		},
 		/**
 		 *
-		 * @param {SpotifyApi} sdk
+		 * @param {import('@spotify/web-api-ts-sdk').SpotifyApi} sdk
 		 */
 		async forward(sdk) {
 			await sdk.player.skipToNext();
@@ -211,7 +212,7 @@ export const SpotifyInteract = {
 		},
 		/**
 		 *
-		 * @param {SpotifyApi} sdk
+		 * @param {import('@spotify/web-api-ts-sdk').SpotifyApi} sdk
 		 */
 		async back(sdk) {
 			await sdk.player.skipToPrevious();
