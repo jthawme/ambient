@@ -3,7 +3,12 @@ import * as Types from './types/options.js';
 export const ERROR = {
 	GENERAL: 'api/general',
 	UNAUTHENTICATED: 'api/unauthenticated',
-	SPOTIFY_UNAUTHENTICATED: 'api/spotify_unauthenticated'
+	SPOTIFY_UNAUTHENTICATED: 'spotify/unauthenticated',
+	SPOTIFY_REAUTHENTICATE: 'spotify/reauthenticate',
+
+	SPOTIFY_RATE_LIMIT: 'spotify/rate-limit',
+	SPOTIFY_RESTRICTED: 'spotify/restricted',
+	SPOTIFY_ERROR: 'spotify/spotify-general'
 };
 
 export const EVENT = {
@@ -40,5 +45,7 @@ export const DEFAULT_OPTIONS = {
 		scope: []
 	},
 
-	pluginOptions: {}
+	pluginOptions: {},
+
+	suppressErrors: []
 };

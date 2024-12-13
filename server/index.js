@@ -14,6 +14,7 @@ import ApiRoutes from './api/index.js';
 import SpotifyRoutes from './spotify/index.js';
 import { SpotifyInteract } from './api/interact.js';
 import { OPTIONS } from './config.js';
+import { CommandHistory } from './history.js';
 
 const URL = `${OPTIONS.origin}:${OPTIONS.port}`;
 
@@ -37,6 +38,8 @@ const sdk = {
 	current: null
 };
 
+const history = CommandHistory();
+
 const { plugins, ...config } = OPTIONS;
 const inject = {
 	io,
@@ -46,25 +49,29 @@ const inject = {
 	sdk,
 	spotify: SpotifyInteract,
 	config,
+	history,
 	info: {
 		url: URL,
 		player: [URL, OPTIONS.playerRoute].join('')
 	}
 };
 
-OPTIONS.plugins
-	.filter((plugin) => {
-		if (plugin.skip && OPTIONS.verbose) {
-			console.log(`Skipping plugin: ${plugin.name ?? 'Unnamed'}`);
-		}
-		return !plugin.skip;
-	})
-	.forEach((plugin) => plugin.handler(inject));
+await Promise.all(
+	OPTIONS.plugins
+		.filter((plugin) => {
+			if (plugin.skip && OPTIONS.verbose) {
+				console.log(`Skipping plugin: ${plugin.name ?? 'Unnamed'}`);
+			}
+			return !plugin.skip;
+		})
+		.map((plugin) => Promise.resolve().then(() => plugin.handler(inject)))
+);
 
 /**
  * Middleware which attachs the spotify intance and the socket io instance
  */
 app.use((req, res, next) => {
+	req.history = history;
 	req.sdk = sdk.current;
 	req.io = io;
 	req.comms = commsObject;
@@ -107,7 +114,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 app.use((err, req, res, next) => {
-	events.error(ERROR.GENERAL, err);
+	// events.error(ERROR.GENERAL, err);
 
 	return res.json({
 		error: true,
@@ -116,7 +123,9 @@ app.use((err, req, res, next) => {
 });
 
 events.on(EVENT.APP_ERROR, ({ message }) => {
-	commsObject.error(message);
+	if (!OPTIONS.suppressErrors.includes(message)) {
+		commsObject.error(message);
+	}
 });
 
 events.on(`system:authenticated`, () => {
