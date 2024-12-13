@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import * as KioskPlugin from './plugins/KioskMode.js';
+import * as SonosPlugin from './plugins/SonosFallback.js';
 
 /** @type {import('./server/types/options.js').Config} */
 export default {
@@ -12,5 +13,7 @@ export default {
 		client_secret: process.env.SPOTIFY_CLIENT_SECRET
 	},
 
-	plugins: [KioskPlugin]
+	plugins: [KioskPlugin, SonosPlugin],
+
+	suppressErrors: ['spotify/restricted']
 };
