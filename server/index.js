@@ -57,6 +57,9 @@ const inject = {
 	}
 };
 
+if (OPTIONS.verbose) {
+	console.log('Starting to initialise plugins');
+}
 await Promise.all(
 	OPTIONS.plugins
 		.filter((plugin) => {
@@ -67,6 +70,9 @@ await Promise.all(
 		})
 		.map((plugin) => Promise.resolve().then(() => plugin.handler(inject)))
 );
+if (OPTIONS.verbose) {
+	console.log('Finished initialising plugins');
+}
 
 /**
  * Middleware which attachs the spotify intance and the socket io instance

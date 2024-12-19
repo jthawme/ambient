@@ -1,5 +1,5 @@
 import os from 'node:os';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 /**
  *
@@ -36,5 +36,9 @@ export const getIp = () => {
  * @param {string} url
  */
 export const isMain = (url) => {
-	return process.argv[1] === fileURLToPath(url);
+	const runner = !process.argv[1].endsWith('.js')
+		? [process.argv[1], 'index.js'].join('/')
+		: process.argv[1];
+
+	return runner === fileURLToPath(url);
 };

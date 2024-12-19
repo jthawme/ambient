@@ -26,3 +26,5 @@ server/spotify_auth.json
 
 *.logs.json
 ambient.config.js
+
+package-lock.json
