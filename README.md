@@ -4,6 +4,8 @@ An ambient display screen for spotify, with the configurable ability to also non
 
 ![Screenshot](./screenshot.png?raw=true 'Screenshot of the player')
 
+[Watch a userful video here](https://www.youtube.com/watch?v=0QEBUVzqkY0)
+
 ## Like a Spotify Jam?
 
 Yeah pretty much, in fact much worse. But in _some_ ways better. Gives a more 'there is a Spotify instance running by the host, but if you wanna chuck a couple tunes in, go for it' vibe, rather than full control.
