@@ -1,0 +1,13 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
+// import * as KioskPlugin from './plugins/KioskMode.js';
+
+/** @type {import('./server/types/options.js').Config} */
+export default {
+	// A nice way to pass in the credentials
+	// spotify: {
+	// 	client_id: process.env.SPOTIFY_CLIENT_ID,
+	// 	client_secret: process.env.SPOTIFY_CLIENT_SECRET
+	// },
+};

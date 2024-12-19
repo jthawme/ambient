@@ -15,6 +15,7 @@ import SpotifyRoutes from './spotify/index.js';
 import { SpotifyInteract } from './api/interact.js';
 import { OPTIONS } from './config.js';
 import { CommandHistory } from './history.js';
+import { isMain } from './utils.js';
 
 const URL = `${OPTIONS.origin}:${OPTIONS.port}`;
 
@@ -132,8 +133,21 @@ events.on(`system:authenticated`, () => {
 	io.emit('reload');
 });
 
-server.listen(OPTIONS.port, () => {
-	console.log(`App running on port ${URL}`);
+export default {
+	inject,
+	server,
+	start() {
+		server.listen(OPTIONS.port, () => {
+			console.log(`App running on port ${URL}`);
+			events.system('start');
+		});
+	}
+};
 
-	events.system('start');
-});
+if (isMain(import.meta.url)) {
+	server.listen(OPTIONS.port, () => {
+		console.log(`App running on port ${URL}`);
+
+		events.system('start');
+	});
+}

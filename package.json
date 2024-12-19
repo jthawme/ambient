@@ -1,6 +1,7 @@
 {
-	"name": "spotify-party",
-	"version": "0.0.1",
+	"name": "ambient-display",
+	"version": "1.0.0",
+	"description": "Like a spotify jam but much worse, but also much better. If you need it, you'll love it.",
 	"type": "module",
 	"scripts": {
 		"dev": "NODE_ENV=development concurrently \"npm:dev:*\"",

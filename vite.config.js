@@ -7,7 +7,7 @@ export default defineConfig({
 	server: {
 		host: true,
 		fs: {
-			allow: [searchForWorkspaceRoot(process.cwd()), './server', './party.config.js']
+			allow: [searchForWorkspaceRoot(process.cwd()), './server', './ambient.config.js']
 		}
 	},
 	plugins: [
