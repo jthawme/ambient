@@ -14,6 +14,8 @@ import ApiRoutes from './api/index.js';
 import SpotifyRoutes from './spotify/index.js';
 import { SpotifyInteract } from './api/interact.js';
 import { OPTIONS } from './config.js';
+import { CommandHistory } from './history.js';
+import { isMain } from './utils.js';
 
 const URL = `${OPTIONS.origin}:${OPTIONS.port}`;
 
@@ -37,6 +39,8 @@ const sdk = {
 	current: null
 };
 
+const history = CommandHistory();
+
 const { plugins, ...config } = OPTIONS;
 const inject = {
 	io,
@@ -46,25 +50,35 @@ const inject = {
 	sdk,
 	spotify: SpotifyInteract,
 	config,
+	history,
 	info: {
 		url: URL,
 		player: [URL, OPTIONS.playerRoute].join('')
 	}
 };
 
-OPTIONS.plugins
-	.filter((plugin) => {
-		if (plugin.skip && OPTIONS.verbose) {
-			console.log(`Skipping plugin: ${plugin.name ?? 'Unnamed'}`);
-		}
-		return !plugin.skip;
-	})
-	.forEach((plugin) => plugin.handler(inject));
+if (OPTIONS.verbose) {
+	console.log('Starting to initialise plugins');
+}
+await Promise.all(
+	OPTIONS.plugins
+		.filter((plugin) => {
+			if (plugin.skip && OPTIONS.verbose) {
+				console.log(`Skipping plugin: ${plugin.name ?? 'Unnamed'}`);
+			}
+			return !plugin.skip;
+		})
+		.map((plugin) => Promise.resolve().then(() => plugin.handler(inject)))
+);
+if (OPTIONS.verbose) {
+	console.log('Finished initialising plugins');
+}
 
 /**
  * Middleware which attachs the spotify intance and the socket io instance
  */
 app.use((req, res, next) => {
+	req.history = history;
 	req.sdk = sdk.current;
 	req.io = io;
 	req.comms = commsObject;
@@ -107,7 +121,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 app.use((err, req, res, next) => {
-	events.error(ERROR.GENERAL, err);
+	// events.error(ERROR.GENERAL, err);
 
 	return res.json({
 		error: true,
@@ -116,15 +130,30 @@ app.use((err, req, res, next) => {
 });
 
 events.on(EVENT.APP_ERROR, ({ message }) => {
-	commsObject.error(message);
+	if (!OPTIONS.suppressErrors.includes(message)) {
+		commsObject.error(message);
+	}
 });
 
 events.on(`system:authenticated`, () => {
 	io.emit('reload');
 });
 
-server.listen(OPTIONS.port, () => {
-	console.log(`App running on port ${URL}`);
+export default {
+	inject,
+	server,
+	start() {
+		server.listen(OPTIONS.port, () => {
+			console.log(`App running on port ${URL}`);
+			events.system('start');
+		});
+	}
+};
 
-	events.system('start');
-});
+if (isMain(import.meta.url)) {
+	server.listen(OPTIONS.port, () => {
+		console.log(`App running on port ${URL}`);
+
+		events.system('start');
+	});
+}

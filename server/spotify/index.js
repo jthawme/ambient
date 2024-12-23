@@ -1,10 +1,7 @@
-import { SpotifyApi } from '@spotify/web-api-ts-sdk';
 import { Router } from 'express';
 
-import { ERROR, DEFAULT_OPTIONS, EVENT } from '../constants.js';
-import * as OptionsTypes from '../types/options.js';
+import { ERROR } from '../constants.js';
 import { events } from '../events.js';
-import { mergeOptions } from '../utils.js';
 import { initialisePreviousAuth, SpotifyAuth } from './auth.js';
 import { persistSdk } from './sdk.js';
 
@@ -17,8 +14,8 @@ const SCOPE = [
 
 /**
  *
- * @param {{current: null | SpotifyApi}} sdk
- * @param {OptionsTypes.SpotifyAmbientDisplayOptions} options
+ * @param {{current: null | import("@spotify/web-api-ts-sdk").SpotifyApi}} sdk
+ * @param {import("../types/options.js").SpotifyAmbientDisplayOptions} options
  */
 const run = async (sdk, options) => {
 	// First check if there is previous auth that is valid

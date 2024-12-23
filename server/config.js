@@ -18,7 +18,7 @@ const INJECTED_OPTIONS = {
 };
 
 /** @type {Types.Config} */
-const USER_OPTIONS = await import('../party.config.js')
+const USER_OPTIONS = await import('../ambient.config.js')
 	.then((module) => module.default)
 	.catch(() => ({}));
 

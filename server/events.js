@@ -15,8 +15,7 @@ export class AppEventEmitter extends EventEmitter {
 	emit(eventName, message, data = {}) {
 		super.emit(eventName, {
 			message,
-			data,
-			hooked: true
+			data
 		});
 	}
 

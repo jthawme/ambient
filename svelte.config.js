@@ -10,7 +10,7 @@ const config = {
 		adapter: adapter(),
 		alias: {
 			$server: './server',
-			$config: './party.config.js'
+			$config: './ambient.config.js'
 		}
 	},
 	preprocess: [vitePreprocess()]

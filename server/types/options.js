@@ -27,8 +27,9 @@
  * @property {import('express').Express} app
  * @property {import('../events').AppEventEmitter} events
  * @property {{current: null | import('@spotify/web-api-ts-sdk').SpotifyApi}} sdk
- * @property {import('../api/interact').SpotifyInteract} spotify
+ * @property {import('../api/interact.js').SpotifyInteract} spotify
  * @property {SpotifyAmbientDisplayOptions} config
+ * @property {import('../history.js').CommandHistory} history
  * @property {{ url: string, player: string }} info
  *
  */
@@ -50,6 +51,7 @@
  * @property {ApiOptions} api
  * @property {SpotifyOptions} spotify
  * @property {Record<string, any>} pluginOptions
+ * @property {string[]} suppressErrors Any error events to catch and not send to the frontend, because perhaps a plugin will handle them
  */
 
 /**
@@ -63,6 +65,8 @@
  * @property {Partial<SpotifyOptions>} [spotify]
  * @property {PluginItem[]} [plugins]
  * @property {Record<string, any>} [pluginOptions]
+ * @property {string[]} [suppressErrors] Any error events to catch and not send to the frontend, because perhaps a plugin will handle them
+ *
  */
 
 export const Types = {};

@@ -231,11 +231,15 @@ export const getContext = async (sdk, uri) => {
  */
 export function apiWrapper(handler) {
 	return async (
-		/** @type {import('express').Request & {sdk: import('@spotify/web-api-ts-sdk').SpotifyApi}} */ req,
+		/** @type {import('express').Request & {sdk: import('@spotify/web-api-ts-sdk').SpotifyApi, history: import('../history.js').CommandHistory}} */ req,
 		/** @type {import('express').Response} */ res,
 		/** @type {import('express').NextFunction} */ next
 	) => {
 		try {
+			req.history.add({
+				type: req.path,
+				params: req.params
+			});
 			await handler(req, res);
 		} catch (e) {
 			console.error('API Error', e);

@@ -3,6 +3,17 @@ import { DEFAULT_OPTIONS } from '../constants.js';
 import { trim, getContext } from './utils.js';
 
 export const SpotifyInteract = {
+	device: {
+		/**
+		 *
+		 * @param {import('@spotify/web-api-ts-sdk').SpotifyApi} sdk
+		 * @param {import('@spotify/web-api-ts-sdk').Market} market
+		 */
+		async get(sdk, market = 'GB') {
+			return sdk.player.getPlaybackState(market);
+		}
+	},
+
 	artist: {
 		/**
 		 *

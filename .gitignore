@@ -25,4 +25,7 @@ vite.config.ts.timestamp-*
 server/spotify_auth.json
 
 *.logs.json
+ambient.config.js
+
+package-lock.json
 yarn.lock

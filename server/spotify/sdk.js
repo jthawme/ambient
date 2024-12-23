@@ -5,6 +5,7 @@ import { events } from '../events.js';
 import { log } from '../logs.js';
 import * as Types from '../types/index.js';
 import { SpotifyAuth } from './auth.js';
+import { ERROR } from '../constants.js';
 
 class FixedAccessTokenStrategy {
 	/**
@@ -75,6 +76,20 @@ class FixedAccessTokenStrategy {
 
 /**
  *
+ * @param {Response} resp
+ */
+const safeBody = async (resp) => {
+	const text = await resp.text();
+
+	try {
+		return JSON.parse(text);
+	} catch {
+		return text;
+	}
+};
+
+/**
+ *
  * @param {Types.SpotifyOptions['accessTokenJsonLocation']} filePath
  * @param {string} client_id
  * @param {string} client_secret
@@ -117,28 +132,40 @@ export async function persistSdk(filePath, client_id, client_secret, accessToken
 				async validateResponse(response) {
 					switch (response.status) {
 						case 401:
-							events.error(`Bad token - Re-auth`);
+							events.error(ERROR.SPOTIFY_REAUTHENTICATE);
 
 							throw new Error(
 								'Bad or expired token. This can happen if the user revoked a token or the access token has expired. You should re-authenticate the user.'
 							);
 						case 403: {
-							events.error(`Bad token - wrong credentials`);
+							const body = await safeBody(response);
 
-							const body = await response.text();
+							if (typeof body === 'string') {
+								events.error(ERROR.SPOTIFY_UNAUTHENTICATED, {
+									message: body
+								});
+							} else {
+								if (body.error.message === 'Restricted device') {
+									events.error(ERROR.SPOTIFY_RESTRICTED);
+								} else {
+									events.error(ERROR.SPOTIFY_UNAUTHENTICATED, body);
+								}
+							}
+
 							throw new Error(
-								`Bad OAuth request (wrong consumer key, bad nonce, expired timestamp...). Unfortunately, re-authenticating the user won't help here. Body: ${body}`
+								`Bad OAuth request (wrong consumer key, bad nonce, expired timestamp...). Unfortunately, re-authenticating the user won't help here. Body: ${typeof body === 'string' ? body : JSON.stringify(body)}`
 							);
 						}
 						case 429:
-							events.error(
-								`Rate Limit - ${Math.round((parseInt(response.headers.get('Retry-After')) / 60) * 10) / 10}s`
-							);
+							events.error(ERROR.SPOTIFY_RATE_LIMIT, {
+								retry: parseInt(response.headers.get('Retry-After')),
+								retryString: `${Math.round((parseInt(response.headers.get('Retry-After')) / 60) * 10) / 10}s`
+							});
 
 							throw new Error('The app has exceeded its rate limits.');
 						default:
 							if (!response.status.toString().startsWith('20')) {
-								events.error(`Spotify Api Error`);
+								events.error(ERROR.SPOTIFY_ERROR);
 
 								const body = await response.text();
 								throw new Error(

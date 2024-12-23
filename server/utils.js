@@ -1,11 +1,5 @@
 import os from 'node:os';
-
-export const mergeOptions = (opts, defaultOptions) => {
-	return {
-		...defaultOptions,
-		...opts
-	};
-};
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 /**
  *
@@ -14,7 +8,8 @@ export const mergeOptions = (opts, defaultOptions) => {
  * @returns
  */
 export const asyncInterval = (func, rate) => {
-	let timerId = 0;
+	/** @type {undefined | ReturnType<typeof setTimeout>} */
+	let timerId;
 
 	const run = async () => {
 		await func();
@@ -32,6 +27,18 @@ export const asyncInterval = (func, rate) => {
 export const getIp = () => {
 	const [item] = Object.values(os.networkInterfaces())
 		.flat()
-		.filter((item) => item.family === 'IPv4' && !item.internal);
-	return item.address;
+		.filter((item) => item && item.family === 'IPv4' && !item.internal);
+	return item?.address;
+};
+
+/**
+ *
+ * @param {string} url
+ */
+export const isMain = (url) => {
+	const runner = !process.argv[1].endsWith('.js')
+		? [process.argv[1], 'index.js'].join('/')
+		: process.argv[1];
+
+	return runner === fileURLToPath(url);
 };
