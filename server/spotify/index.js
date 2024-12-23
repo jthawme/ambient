@@ -4,6 +4,7 @@ import { ERROR } from '../constants.js';
 import { events } from '../events.js';
 import { initialisePreviousAuth, SpotifyAuth } from './auth.js';
 import { persistSdk } from './sdk.js';
+import { catchAndRetry } from '../utils.js';
 
 // These scoped items are fixed and necessary for the app to run
 const SCOPE = [
@@ -87,12 +88,12 @@ const run = async (sdk, options) => {
 			});
 		}
 
-		const accessTokenJson = await SpotifyAuth.token.get(
+		const accessTokenJson = await catchAndRetry(SpotifyAuth.token.get(
 			options.spotify.client_id,
 			options.spotify.client_secret,
 			code,
 			redirect_uri
-		);
+		));
 		sdk.current = await persistSdk(
 			options.spotify.accessTokenJsonLocation,
 			options.spotify.client_secret,

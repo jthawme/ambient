@@ -19,7 +19,7 @@ It also protects against the DREADED playlist switch. It then also allows the ho
 ```
 npm run build // or any package manager of course
 
-node server
+node server/run.js
 ```
 
 This will build the sveltekit project and then run the express server

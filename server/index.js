@@ -15,7 +15,6 @@ import SpotifyRoutes from './spotify/index.js';
 import { SpotifyInteract } from './api/interact.js';
 import { OPTIONS } from './config.js';
 import { CommandHistory } from './history.js';
-import { isMain } from './utils.js';
 
 const URL = `${OPTIONS.origin}:${OPTIONS.port}`;
 
@@ -149,11 +148,3 @@ export default {
 		});
 	}
 };
-
-if (isMain(import.meta.url)) {
-	server.listen(OPTIONS.port, () => {
-		console.log(`App running on port ${URL}`);
-
-		events.system('start');
-	});
-}
