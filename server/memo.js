@@ -42,16 +42,16 @@ export const memo = {
 	 * A utility that first checks the cache and if not runs the function and saved the return
 	 *
 	 * @param {string} key
-	 * @param {() => Promise<any>} func
+	 * @param {() => Promise<any>} memoFunc
 	 * @param {(data: any) => any} transform
 	 * @returns
 	 */
-	async use(key, func, transform = (value) => value) {
+	async use(key, memoFunc, transform = (value) => value) {
 		if (this.exists(key)) {
 			return this.get(key);
 		} else {
 			this.delete(key);
-			const resp = transform(await Promise.resolve().then(() => func()));
+			const resp = transform(await Promise.resolve().then(() => memoFunc()));
 			this.save(key, resp);
 			return resp;
 		}

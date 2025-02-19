@@ -88,12 +88,14 @@ const run = async (sdk, options) => {
 			});
 		}
 
-		const accessTokenJson = await catchAndRetry(SpotifyAuth.token.get(
-			options.spotify.client_id,
-			options.spotify.client_secret,
-			code,
-			redirect_uri
-		));
+		const accessTokenJson = await catchAndRetry(() => {
+				return SpotifyAuth.token.get(
+				options.spotify.client_id,
+				options.spotify.client_secret,
+				code,
+				redirect_uri
+			)
+		});
 		sdk.current = await persistSdk(
 			options.spotify.accessTokenJsonLocation,
 			options.spotify.client_secret,

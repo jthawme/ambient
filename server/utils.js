@@ -2,21 +2,21 @@ import os from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const timer = (time) => {
-	return new Promise(resolve => setTimeout(resolve, time));
-}
+	return new Promise((resolve) => setTimeout(resolve, time));
+};
 
 /**
  *
- * @param {() => Promise<any>} func
+ * @param {() => Promise<any>} asyncInteralFunc
  * @param {number} rate
  * @returns
  */
-export const asyncInterval = (func, rate) => {
+export const asyncInterval = (asyncInteralFunc, rate) => {
 	/** @type {undefined | ReturnType<typeof setTimeout>} */
 	let timerId;
 
 	const run = async () => {
-		await func();
+		await asyncInteralFunc();
 
 		timerId = setTimeout(run, rate);
 	};
@@ -44,21 +44,22 @@ export const isMain = (url) => {
 		? [process.argv[1], 'index.js'].join('/')
 		: process.argv[1];
 
-	console.log("CHECK", process.argv[1], url, fileURLToPath(url));
-
 	return runner === fileURLToPath(url);
 };
 
 /**
- * 
- * @param {() => void} func 
- * @param {{ times?: number, validateError?: () => boolean}} opts 
+ *
+ * @param {() => void} catchAndRetryFunc
+ * @param {{ times?: number, validateError?: () => boolean, backoff?: number}} opts
  */
-export const catchAndRetry = async (func, {times = 10, validateError = () => true, backoff = 1000} = {}) => {
+export const catchAndRetry = async (
+	catchAndRetryFunc,
+	{ times = 10, validateError = () => true, backoff = 1000 } = {}
+) => {
 	return new Promise((resolve, reject) => {
 		const run = async (retry = 0) => {
 			try {
-				const resp = await func();
+				const resp = await catchAndRetryFunc();
 				resolve(resp);
 			} catch (e) {
 				if (validateError(e) && retry < times) {
@@ -68,8 +69,8 @@ export const catchAndRetry = async (func, {times = 10, validateError = () => tru
 					reject(e);
 				}
 			}
-		}
+		};
 
 		run();
 	});
-}
+};

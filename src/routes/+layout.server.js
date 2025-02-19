@@ -2,7 +2,9 @@ import { OPTIONS } from '$server/config.js';
 
 const testServer = async (fetch) => {
 	try {
-		const { success } = await fetch('/api/health').then((resp) => resp.json());
+		const { success } = await fetch({ path: '/api/health', protocol: 'http' }).then((resp) =>
+			resp.json()
+		);
 
 		return success;
 	} catch {
