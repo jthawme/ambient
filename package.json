@@ -41,7 +41,7 @@
 	"dependencies": {
 		"@spotify/web-api-ts-sdk": "^1.2.0",
 		"ambient-kiosk-mode": "^1.0.1",
-		"ambient-sonos-fallback": "^1.0.0",
+		"ambient-sonos-fallback": "^1.0.1",
 		"bunyan": "^1.8.15",
 		"cors": "^2.8.5",
 		"deepmerge": "^4.3.1",
