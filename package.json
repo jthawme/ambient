@@ -17,8 +17,9 @@
 		"format": "prettier --write .",
 		"lint": "prettier --check . && eslint .",
 		"release": "standard-version",
-		"release:publish": "npm run release && npm publish"
+		"release:publish": "npm run build && npm run release && npm publish"
 	},
+	"files": ["build/*", "server/*", "ambient.config.js.template", "README.md", ".nvmrc"],
 	"devDependencies": {
 		"@eslint/compat": "^1.2.3",
 		"@poppanator/sveltekit-svg": "^5.0.0",
