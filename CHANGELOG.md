@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.4](https://github.com/jthawme/ambient/compare/v1.1.3...v1.1.4) (2025-03-04)
+
+
+### Bug Fixes
+
+* fixed port display ([1fe426b](https://github.com/jthawme/ambient/commit/1fe426b3134e929dc875339f97ac71f7590c8b37))
+
 ### [1.1.3](https://github.com/jthawme/ambient/compare/v1.1.2...v1.1.3) (2025-03-04)
 
 
