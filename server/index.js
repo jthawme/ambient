@@ -18,6 +18,10 @@ import { CommandHistory } from './history.js';
 
 const URL = `${OPTIONS.origin}:${OPTIONS.port}`;
 
+if (OPTIONS.verbose) {
+	console.log(OPTIONS);
+}
+
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
