@@ -11,7 +11,7 @@ export const config = writable({});
 export const siteUrl = derived([config], ([$config]) =>
 	[$config?.protocol, $config?.origin].join('')
 );
-export const sitePort = derived([config], ([$config]) => $config.protocol);
+export const sitePort = derived([config], ([$config]) => $config.port);
 
 const objectHasValues = (obj) => Object.values(obj).length > 0;
 
