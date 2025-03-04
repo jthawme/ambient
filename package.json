@@ -3,6 +3,9 @@
 	"version": "1.0.0",
 	"description": "Like a spotify jam but much worse, but also much better. If you need it, you'll love it.",
 	"type": "module",
+	"bin": {
+		"ambient": "./server/run.js"
+	},
 	"scripts": {
 		"dev": "NODE_ENV=development concurrently \"npm:dev:*\"",
 		"dev:frontend": "vite dev",
