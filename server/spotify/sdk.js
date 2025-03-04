@@ -4,8 +4,10 @@ import fs from 'node:fs/promises';
 import { events } from '../events.js';
 import { log } from '../logs.js';
 import * as Types from '../types/index.js';
+import * as OptionTypes from '../types/options.js';
 import { SpotifyAuth } from './auth.js';
 import { ERROR } from '../constants.js';
+import path from 'node:path';
 
 class FixedAccessTokenStrategy {
 	/**
@@ -90,15 +92,22 @@ const safeBody = async (resp) => {
 
 /**
  *
- * @param {Types.SpotifyOptions['accessTokenJsonLocation']} filePath
- * @param {string} client_id
- * @param {string} client_secret
  * @param {Types.SpotifyAccessToken} accessTokenData
+ * @param {OptionTypes.SpotifyAmbientDisplayOptions} opts
  * @returns
  */
-export async function persistSdk(filePath, client_id, client_secret, accessTokenData) {
+export async function persistSdk(
+	accessTokenData,
+	{ spotify: { client_id, client_secret, accessTokenJsonLocation }, verbose }
+) {
+	if (verbose) {
+		console.log('Persisting credentials in', path.resolve(process.cwd(), accessTokenJsonLocation));
+	}
+
+	const p = path.resolve(process.cwd(), accessTokenJsonLocation);
+
 	// Persist the access token data to disk
-	await fs.writeFile(filePath, JSON.stringify(accessTokenData), 'utf-8');
+	await fs.writeFile(p, JSON.stringify(accessTokenData), 'utf-8');
 
 	return new SpotifyApi(
 		new FixedAccessTokenStrategy(

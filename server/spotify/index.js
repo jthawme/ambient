@@ -24,12 +24,7 @@ const run = async (sdk, options) => {
 
 	// If there is, initialise it while also persisting the auth
 	if (refreshedAuth) {
-		sdk.current = await persistSdk(
-			options.spotify.accessTokenJsonLocation,
-			options.spotify.client_id,
-			options.spotify.client_secret,
-			refreshedAuth
-		);
+		sdk.current = await persistSdk(refreshedAuth, options);
 	}
 
 	// Initalise a sub router
@@ -89,18 +84,15 @@ const run = async (sdk, options) => {
 		}
 
 		const accessTokenJson = await catchAndRetry(() => {
-				return SpotifyAuth.token.get(
+			return SpotifyAuth.token.get(
 				options.spotify.client_id,
 				options.spotify.client_secret,
 				code,
 				redirect_uri
-			)
+			);
 		});
-		sdk.current = await persistSdk(
-			options.spotify.accessTokenJsonLocation,
-			options.spotify.client_secret,
-			accessTokenJson
-		);
+
+		sdk.current = await persistSdk(accessTokenJson, options);
 
 		events.system('authenticated');
 
