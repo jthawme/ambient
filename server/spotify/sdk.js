@@ -118,7 +118,7 @@ export async function persistSdk(
 			}
 			await fs.copyFile(
 				path.join(__dirname(import.meta.url), '../../ambient.config.js.template'),
-				path.join(path.dirname(p), './ambient.config.js')
+				path.join(path.dirname(p), './ambient.config.mjs')
 			);
 		} else {
 			console.log('Error accessing credentials folder', e);
