@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.3](https://github.com/jthawme/ambient/compare/v1.1.2...v1.1.3) (2025-03-04)
+
+
+### Bug Fixes
+
+* made copied file mjs extension for compatibility ([cf8e06a](https://github.com/jthawme/ambient/commit/cf8e06ac67a1abf721ce0bb9b4a856ea1e55e6f0))
+
 ### [1.1.2](https://github.com/jthawme/ambient/compare/v1.1.1...v1.1.2) (2025-03-04)
 
 ### [1.1.1](https://github.com/jthawme/ambient/compare/v1.1.0...v1.1.1) (2025-03-04)
