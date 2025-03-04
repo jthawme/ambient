@@ -3,11 +3,12 @@ import dotenv from 'dotenv';
 import * as Types from './types/options.js';
 
 import { DEFAULT_OPTIONS } from './constants.js';
-import { getIp } from './utils.js';
+import { expandAliases, getIp } from './utils.js';
 
 dotenv.config();
 
 const INJECTED_OPTIONS = {
+	verbose: 'VERBOSE' in process.env && process.env.VERBOSE?.toLowerCase() !== 'false',
 	origin: process.env.ORIGIN ?? getIp(),
 	protocol: process.env.PROTOCOL ?? 'http://',
 	port: process.env.PORT ?? 3000,
@@ -18,7 +19,7 @@ const INJECTED_OPTIONS = {
 };
 
 /** @type {Types.Config} */
-const USER_OPTIONS = await import('../ambient.config.js')
+const USER_OPTIONS = await import(expandAliases(process.env.CONFIG ?? '../ambient.config.js'))
 	.then((module) => module.default)
 	.catch(() => ({}));
 

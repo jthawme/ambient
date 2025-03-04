@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 
 import * as Types from '../types/index.js';
 import * as OptionsTypes from '../types/options.js';
+import { expandAliases } from '../utils.js';
 
 export const SpotifyAuth = {
 	token: {
@@ -65,7 +66,7 @@ export async function initialisePreviousAuth({
 }) {
 	try {
 		// Attemps to read the json file of auth, will throw an error if it doesn't exist
-		const previousAuth = await fs.readFile(accessTokenJsonLocation, 'utf-8');
+		const previousAuth = await fs.readFile(expandAliases(accessTokenJsonLocation), 'utf-8');
 
 		// Parse the object to utilise it
 		const previous = JSON.parse(previousAuth);

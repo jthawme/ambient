@@ -14,12 +14,18 @@ It also protects against the DREADED playlist switch. It then also allows the ho
 
 ## Installing and running
 
-### Option 1: Pull the project locally
+### Option 1: Install globally
 
 ```
-npm run build // or any package manager of course
+npm i -g ambient-display // or any package manager of course
 
-node server/run.js
+SPOTIFY_CLIENT_ID=[ID_HERE] SPOTIFY_CLIENT_SECRET=[SECRET_HERE] ambient
+```
+
+or load a config file from somewhere
+
+```
+CONFIG=~/.ambient/ambient.config.js ambient
 ```
 
 This will build the sveltekit project and then run the express server
@@ -27,6 +33,14 @@ This will build the sveltekit project and then run the express server
 ### Option 2: Install in another project [COMING SOON]
 
 Hopefully
+
+### Option 3: Pull the project locally
+
+```
+npm run build // or any package manager of course
+
+node server/run.js
+```
 
 ## Config
 

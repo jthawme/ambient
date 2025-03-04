@@ -1,5 +1,14 @@
 import os from 'node:os';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
+
+/**
+ *
+ * @param {string} url
+ * @returns
+ */
+export const __dirname = (url) => {
+	return fileURLToPath(new URL('.', url));
+};
 
 const timer = (time) => {
 	return new Promise((resolve) => setTimeout(resolve, time));
@@ -73,4 +82,20 @@ export const catchAndRetry = async (
 
 		run();
 	});
+};
+
+/**
+ *
+ * @param {string} filePath
+ */
+export const expandAliases = (filePath) => {
+	if (filePath.startsWith('~')) {
+		return os.homedir() + filePath.slice(0);
+	}
+
+	if (filePath.startsWith('$HOME')) {
+		return os.homedir() + filePath.slice('$HOME'.length);
+	}
+
+	return filePath;
 };

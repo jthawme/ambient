@@ -56,21 +56,26 @@ const inject = {
 	}
 };
 
-if (OPTIONS.verbose) {
-	console.log('Starting to initialise plugins');
-}
-await Promise.all(
-	OPTIONS.plugins
-		.filter((plugin) => {
-			if (plugin.skip && OPTIONS.verbose) {
-				console.log(`Skipping plugin: ${plugin.name ?? 'Unnamed'}`);
-			}
-			return !plugin.skip;
-		})
-		.map((plugin) => Promise.resolve().then(() => plugin.handler(inject)))
-);
-if (OPTIONS.verbose) {
-	console.log('Finished initialising plugins');
+if (OPTIONS.plugins.length > 0) {
+	if (OPTIONS.verbose) {
+		console.log('Starting to initialise plugins');
+	}
+
+	await Promise.all(
+		OPTIONS.plugins
+			.filter((plugin) => {
+				if (plugin.skip && OPTIONS.verbose) {
+					console.log(`Skipping plugin: ${plugin.name ?? 'Unnamed'}`);
+				}
+				return !plugin.skip;
+			})
+			.map((plugin) => Promise.resolve().then(() => plugin.handler(inject)))
+	);
+	if (OPTIONS.verbose) {
+		console.log('Finished initialising plugins');
+	}
+} else if (OPTIONS.verbose) {
+	console.log('No plugins listed');
 }
 
 /**

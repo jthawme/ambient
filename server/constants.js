@@ -16,7 +16,7 @@ export const EVENT = {
 	SYSTEM: 'system'
 };
 
-/** @type {Types.SpotifyAmbientDisplayOptions} */
+/** @type {Types.Config} */
 export const DEFAULT_OPTIONS = {
 	port: 3000,
 	origin: '',
@@ -41,10 +41,11 @@ export const DEFAULT_OPTIONS = {
 		routePrefix: '/spotify',
 		routeToken: '/token',
 		authenticatedRedirect: '/',
-		accessTokenJsonLocation: './server/spotify_auth.json',
+		accessTokenJsonLocation: '$HOME/.ambient/spotify_auth.json',
 		scope: []
 	},
 
+	plugins: [],
 	pluginOptions: {},
 
 	suppressErrors: []

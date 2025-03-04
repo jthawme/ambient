@@ -8,6 +8,7 @@ import * as OptionTypes from '../types/options.js';
 import { SpotifyAuth } from './auth.js';
 import { ERROR } from '../constants.js';
 import path from 'node:path';
+import { expandAliases, __dirname } from '../utils.js';
 
 class FixedAccessTokenStrategy {
 	/**
@@ -100,11 +101,33 @@ export async function persistSdk(
 	accessTokenData,
 	{ spotify: { client_id, client_secret, accessTokenJsonLocation }, verbose }
 ) {
-	if (verbose) {
-		console.log('Persisting credentials in', path.resolve(process.cwd(), accessTokenJsonLocation));
+	const p = path.resolve(expandAliases(accessTokenJsonLocation));
+
+	try {
+		await fs.access(path.dirname(p));
+	} catch (e) {
+		if (e.code === 'ENOENT') {
+			if (verbose) {
+				console.log('Creating the folder to store the credentials');
+			}
+
+			await fs.mkdir(path.dirname(p), { recursive: true });
+
+			if (verbose) {
+				console.log('Saving a config file in the folder too');
+			}
+			await fs.copyFile(
+				path.join(__dirname(import.meta.url), '../../ambient.config.js.template'),
+				path.join(path.dirname(p), './ambient.config.js')
+			);
+		} else {
+			console.log('Error accessing credentials folder', e);
+		}
 	}
 
-	const p = path.resolve(process.cwd(), accessTokenJsonLocation);
+	if (verbose) {
+		console.log('Persisting credentials in', p);
+	}
 
 	// Persist the access token data to disk
 	await fs.writeFile(p, JSON.stringify(accessTokenData), 'utf-8');
