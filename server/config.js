@@ -27,5 +27,10 @@ const USER_OPTIONS = await import(expandAliases(process.env.CONFIG ?? '../ambien
 	.then((module) => module.default)
 	.catch(() => ({}));
 
+if (INJECTED_OPTIONS.verbose ?? USER_OPTIONS.verbose) {
+	console.log(`config`);
+	console.log(USER_OPTIONS);
+}
+
 /** @type {Types.SpotifyAmbientDisplayOptions & {plugins: Types.Config['plugins']}} */
 export const OPTIONS = deepmerge(DEFAULT_OPTIONS, deepmerge(INJECTED_OPTIONS, USER_OPTIONS));
