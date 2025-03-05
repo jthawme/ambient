@@ -23,13 +23,15 @@
 	let mounted = $state(false);
 
 	$effect(() => {
-		mounted = true;
+		setTimeout(() => {
+			mounted = true;
+		}, 50);
 	});
 </script>
 
 <span
 	class="image"
-	class:display={loadState === LOAD_STATE.FULL || loadState === LOAD_STATE.COMPLETE}
+	class:display={(loadState === LOAD_STATE.FULL || loadState === LOAD_STATE.COMPLETE) && mounted}
 >
 	{#if loadState !== LOAD_STATE.INITIAL && mounted}
 		<img
@@ -71,6 +73,8 @@
 			duration: 0.5s;
 			property: opacity;
 		}
+
+		z-index: 2;
 
 		.display & {
 			opacity: 1;
