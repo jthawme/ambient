@@ -128,8 +128,11 @@ if (process.env.NODE_ENV === 'development') {
 	app.use(handler);
 }
 
-app.use((err, req, res, next) => {
+app.use((req, res, next) => {
 	// events.error(ERROR.GENERAL, err);
+	if (process.env.NODE_ENV === 'development') {
+		return res.redirect(`http://localhost:5173${req.baseUrl}`);
+	}
 
 	return res.json({
 		error: true,

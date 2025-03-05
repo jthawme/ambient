@@ -16,9 +16,13 @@
 	let loading = $state(true);
 
 	async function determineAppState() {
-		const { authenticated: serverAuthenticated = false } = await $api.health();
+		try {
+			const { authenticated: serverAuthenticated = false } = await $api.health();
 
-		authenticated.set(serverAuthenticated);
+			authenticated.set(serverAuthenticated);
+		} catch (e) {
+			authenticated.set(false);
+		}
 	}
 
 	$effect(() => {

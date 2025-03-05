@@ -33,7 +33,7 @@ export const address = derived(
 				return `${full}${route}`;
 			},
 
-			endpoint: $liveData || !$siteUrl ? '' : `${$siteUrl}:3000`,
+			endpoint: $liveData || !$siteUrl ? '' : `${$siteUrl}:${$sitePort}`,
 
 			/**
 			 *
