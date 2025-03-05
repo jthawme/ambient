@@ -18,6 +18,10 @@ const INJECTED_OPTIONS = {
 	}
 };
 
+if (process.env.CONFIG) {
+	console.log(`Loading config from ${expandAliases(process.env.CONFIG)}`);
+}
+
 /** @type {Types.Config} */
 const USER_OPTIONS = await import(expandAliases(process.env.CONFIG ?? '../ambient.config.js'))
 	.then((module) => module.default)
