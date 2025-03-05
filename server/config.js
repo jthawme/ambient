@@ -25,7 +25,14 @@ if (process.env.CONFIG) {
 /** @type {Types.Config} */
 const USER_OPTIONS = await import(expandAliases(process.env.CONFIG ?? '../ambient.config.js'))
 	.then((module) => module.default)
-	.catch(() => ({}));
+	.catch((e) => {
+		if (process.env.CONFIG) {
+			console.error('Config load error');
+			console.error(e);
+		}
+
+		return {};
+	});
 
 if (INJECTED_OPTIONS.verbose ?? USER_OPTIONS.verbose) {
 	console.log(`config`);
