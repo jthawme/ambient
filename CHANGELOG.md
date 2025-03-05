@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.6](https://github.com/jthawme/ambient/compare/v1.1.5...v1.1.6) (2025-03-05)
+
+
+### Bug Fixes
+
+* small image load bug that was annoying me ([8f62f3a](https://github.com/jthawme/ambient/commit/8f62f3abbbde27c78ffeac5f62a3d269cdcc1a2c))
+
 ### [1.1.5](https://github.com/jthawme/ambient/compare/v1.1.4...v1.1.5) (2025-03-05)
 
 
