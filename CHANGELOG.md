@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.11](https://github.com/jthawme/ambient/compare/v1.1.10...v1.1.11) (2025-03-06)
+
+
+### Bug Fixes
+
+* recheck authenticate periodically for no movement refresh ([d2a4dcc](https://github.com/jthawme/ambient/commit/d2a4dcc25d1676dfa07748f1aae87f9a4f3474bc))
+
 ### [1.1.10](https://github.com/jthawme/ambient/compare/v1.1.9...v1.1.10) (2025-03-06)
 
 
