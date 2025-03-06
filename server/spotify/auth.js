@@ -54,6 +54,30 @@ export const SpotifyAuth = {
 	}
 };
 
+export const refreshAuth = async (client_id, client_secret, previous) => {
+	const { error, ...token } = await SpotifyAuth.token.refresh(
+		client_id,
+		client_secret,
+		previous.refresh_token,
+		previous.access_token
+	);
+
+	if (error) {
+		// This is a shot in the dark, but this was throwing sometimes in quick success of accessing, so wondered if its a rate limit thing
+		if (error === 'invalid_request') {
+			return previous;
+		}
+
+		throw new Error('Invalid token');
+	}
+
+	// Intialise the return with the refresh token, in case it didn't come in the refreshed call. Will get overwritten if it did
+	return {
+		refresh_token: previous.refresh_token,
+		...token
+	};
+};
+
 /**
  *
  * @param {OptionsTypes.SpotifyOptions} options
@@ -71,27 +95,9 @@ export async function initialisePreviousAuth({
 		// Parse the object to utilise it
 		const previous = JSON.parse(previousAuth);
 
-		const { error, ...token } = await SpotifyAuth.token.refresh(
-			client_id,
-			client_secret,
-			previous.refresh_token,
-			previous.access_token
-		);
+		const token = await refreshAuth(client_id, client_secret, previous);
 
-		if (error) {
-			// This is a shot in the dark, but this was throwing sometimes in quick success of accessing, so wondered if its a rate limit thing
-			if (error === 'invalid_request') {
-				return previous;
-			}
-
-			throw new Error('Invalid token');
-		}
-
-		// Intialise the return with the refresh token, in case it didn't come in the refreshed call. Will get overwritten if it did
-		return {
-			refresh_token: previous.refresh_token,
-			...token
-		};
+		return token;
 	} catch {
 		return false;
 	}

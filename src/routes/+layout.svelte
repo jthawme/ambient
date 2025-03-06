@@ -36,6 +36,10 @@
 	$effect(() => {
 		$socket?.on('message', (item) => {
 			toastItems.addItem(item);
+
+			if (item.message.contains('spotify/reauthenticate')) {
+				determineAppState();
+			}
 		});
 		$socket?.on('reload', (item) => {
 			window.location.reload();

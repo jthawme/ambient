@@ -3,7 +3,7 @@ import { Router } from 'express';
 import { ERROR } from '../constants.js';
 import { events } from '../events.js';
 import { initialisePreviousAuth, SpotifyAuth } from './auth.js';
-import { persistSdk } from './sdk.js';
+import { initiateSdk, persistSdk } from './sdk.js';
 import { catchAndRetry } from '../utils.js';
 
 // These scoped items are fixed and necessary for the app to run
@@ -24,7 +24,8 @@ const run = async (sdk, options) => {
 
 	// If there is, initialise it while also persisting the auth
 	if (refreshedAuth) {
-		sdk.current = await persistSdk(refreshedAuth, options);
+		await persistSdk(refreshedAuth, options);
+		sdk.current = initiateSdk(refreshedAuth, options);
 	}
 
 	// Initalise a sub router
@@ -92,7 +93,8 @@ const run = async (sdk, options) => {
 			);
 		});
 
-		sdk.current = await persistSdk(accessTokenJson, options);
+		await persistSdk(accessTokenJson, options);
+		sdk.current = initiateSdk(accessTokenJson, options);
 
 		events.system('authenticated');
 

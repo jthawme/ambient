@@ -5,7 +5,7 @@ import { events } from '../events.js';
 import { log } from '../logs.js';
 import * as Types from '../types/index.js';
 import * as OptionTypes from '../types/options.js';
-import { SpotifyAuth } from './auth.js';
+import { refreshAuth, SpotifyAuth } from './auth.js';
 import { ERROR } from '../constants.js';
 import path from 'node:path';
 import { expandAliases, __dirname } from '../utils.js';
@@ -99,7 +99,7 @@ const safeBody = async (resp) => {
  */
 export async function persistSdk(
 	accessTokenData,
-	{ spotify: { client_id, client_secret, accessTokenJsonLocation }, verbose }
+	{ spotify: { accessTokenJsonLocation }, verbose }
 ) {
 	const p = path.resolve(expandAliases(accessTokenJsonLocation));
 
@@ -131,11 +131,27 @@ export async function persistSdk(
 
 	// Persist the access token data to disk
 	await fs.writeFile(p, JSON.stringify(accessTokenData), 'utf-8');
+}
+
+/**
+ *
+ * @param {Types.SpotifyAccessToken} accessTokenData
+ * @param {OptionTypes.SpotifyAmbientDisplayOptions} opts
+ * @returns
+ */
+export function initiateSdk(accessTokenData, opts) {
+	const {
+		spotify: { client_id, client_secret }
+	} = opts;
 
 	return new SpotifyApi(
-		new FixedAccessTokenStrategy(client_id, accessTokenData, (_client_id, token) =>
-			SpotifyAuth.token.refresh(client_id, client_secret, token.refresh_token, token.access_token)
-		),
+		new FixedAccessTokenStrategy(client_id, accessTokenData, async (_client_id, token) => {
+			const refreshedToken = await refreshAuth(client_id, client_secret, token);
+
+			await persistSdk(refreshedToken, opts);
+
+			return refreshedToken;
+		}),
 		{
 			deserializer: {
 				async deserialize(response) {
