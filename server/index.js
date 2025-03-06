@@ -140,9 +140,10 @@ app.use((req, res, next) => {
 	});
 });
 
-events.on(EVENT.APP_ERROR, ({ message }) => {
+events.on(EVENT.APP_ERROR, ({ message, detail }) => {
 	if (!OPTIONS.suppressErrors.includes(message)) {
 		commsObject.error(message);
+		console.error(message, detail);
 	}
 });
 

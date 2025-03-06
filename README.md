@@ -39,7 +39,7 @@ Hopefully
 ```
 npm run build // or any package manager of course
 
-node server/run.js
+node server/run.mjs
 ```
 
 ## Config

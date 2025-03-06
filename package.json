@@ -9,7 +9,7 @@
 	"scripts": {
 		"dev": "NODE_ENV=development concurrently \"npm:dev:*\"",
 		"dev:frontend": "vite dev",
-		"dev:server": "nodemon --ignore 'server/*.json' server/run.js",
+		"dev:server": "nodemon --ignore 'server/*.json' server/run.mjs",
 		"build": "vite build",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",

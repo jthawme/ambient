@@ -176,7 +176,9 @@ export const SpotifyInteract = {
 				};
 			}
 
-			const context = await SpotifyInteract.context.get(sdk, track.context.uri);
+			const context = track.context
+				? await SpotifyInteract.context.get(sdk, track.context.uri)
+				: {};
 
 			return {
 				isPlaying: track.is_playing,

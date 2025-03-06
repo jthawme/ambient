@@ -197,7 +197,7 @@ const run = (io, sdk, opts = {}, verbose = false) => {
 					}
 				}
 			} catch (e) {
-				events.error(EVENT.APP_ERROR, e);
+				events.error(e.message, e);
 				log.error(e);
 
 				if (verbose) {
