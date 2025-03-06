@@ -133,17 +133,8 @@ export async function persistSdk(
 	await fs.writeFile(p, JSON.stringify(accessTokenData), 'utf-8');
 
 	return new SpotifyApi(
-		new FixedAccessTokenStrategy(
-			client_id,
-			accessTokenData,
-			(_client_id, _client_secret, token) => {
-				SpotifyAuth.token.refresh(
-					client_id,
-					client_secret,
-					token.refresh_token,
-					token.access_token
-				);
-			}
+		new FixedAccessTokenStrategy(client_id, accessTokenData, (_client_id, _client_secret, token) =>
+			SpotifyAuth.token.refresh(client_id, client_secret, token.refresh_token, token.access_token)
 		),
 		{
 			deserializer: {
