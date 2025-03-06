@@ -4,7 +4,7 @@
 	"description": "Like a spotify jam but much worse, but also much better. If you need it, you'll love it.",
 	"type": "module",
 	"bin": {
-		"ambient": "./server/run.js"
+		"ambient": "./server/run.mjs"
 	},
 	"scripts": {
 		"dev": "NODE_ENV=development concurrently \"npm:dev:*\"",
