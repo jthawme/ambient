@@ -14,14 +14,22 @@
 	let { data, children } = $props();
 
 	let loading = $state(true);
+	let appStateTimer = $state(0);
 
 	async function determineAppState() {
+		clearTimeout(appStateTimer);
+
 		try {
 			const { authenticated: serverAuthenticated = false } = await $api.health();
 
 			authenticated.set(serverAuthenticated);
 		} catch (e) {
 			authenticated.set(false);
+
+			// Recheck periodically
+			appStateTimer = window.setTimeout(() => {
+				determineAppState();
+			}, 5000);
 		}
 	}
 
