@@ -37,7 +37,7 @@
 		$socket?.on('message', (item) => {
 			toastItems.addItem(item);
 
-			if (item.message.contains('spotify/reauthenticate')) {
+			if (item.message.includes('spotify/reauthenticate') && $authenticated) {
 				determineAppState();
 			}
 		});
