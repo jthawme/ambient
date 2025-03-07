@@ -146,7 +146,14 @@ export function initiateSdk(accessTokenData, opts) {
 
 	return new SpotifyApi(
 		new FixedAccessTokenStrategy(client_id, accessTokenData, async (_client_id, token) => {
+			if (opts.verbose) {
+				console.log('Refreshing token');
+				log.info('Refreshing token');
+			}
+
 			const refreshedToken = await refreshAuth(client_id, client_secret, token);
+
+			log.info('Refreshed token', refreshedToken);
 
 			await persistSdk(refreshedToken, opts);
 

@@ -162,6 +162,10 @@ const run = (io, sdk, opts = {}, verbose = false) => {
 	);
 
 	app.get('/health', (req, res) => res.json({ success: true, authenticated: !!req.sdk }));
+	app.get('/reauthenticate', (req, res) => {
+		sdk.current = null;
+		res.json({ success: true });
+	});
 
 	if (options.centralisedPolling) {
 		io.on('connect', (socket) => {

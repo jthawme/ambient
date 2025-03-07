@@ -93,6 +93,9 @@ export const api = derived([address], ([$address]) => {
 		health() {
 			return f('/health');
 		},
+		reauthenticate() {
+			return f('/reauthenticate');
+		},
 		info() {
 			return f('/info');
 		},

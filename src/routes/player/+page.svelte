@@ -158,6 +158,8 @@
 		width: 100vw;
 		height: 100dvh;
 
+		cursor: none;
+
 		transition: {
 			duration: 0.5s;
 			property: background-color;

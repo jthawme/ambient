@@ -33,12 +33,21 @@
 		}
 	}
 
+	async function reauthenticate() {
+		try {
+			await $api.reauthenticate();
+			determineAppState();
+		} catch (e) {
+			console.log('Something weird went wrong');
+		}
+	}
+
 	$effect(() => {
 		$socket?.on('message', (item) => {
 			toastItems.addItem(item);
 
 			if (item.message.includes('spotify/reauthenticate') && $authenticated) {
-				determineAppState();
+				reauthenticate();
 			}
 		});
 		$socket?.on('reload', (item) => {
