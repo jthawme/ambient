@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.16](https://github.com/jthawme/ambient/compare/v1.1.15...v1.1.16) (2025-03-07)
+
+
+### Bug Fixes
+
+* contains and includes do my head in ([4437e63](https://github.com/jthawme/ambient/commit/4437e63b5190cf224d11a0148cdabc96c1c13d4a))
+
 ### [1.1.15](https://github.com/jthawme/ambient/compare/v1.1.14...v1.1.15) (2025-03-06)
 
 ### [1.1.14](https://github.com/jthawme/ambient/compare/v1.1.13...v1.1.14) (2025-03-06)
